@@ -1,0 +1,1 @@
+export function withRetry<T>(operation: () => Promise<T>, options?: { maxRetries?: number; maxWaitMs?: number; shouldRetry?: (error: unknown) => boolean; wait?: (milliseconds: number) => Promise<void> }): Promise<T>;

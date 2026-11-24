@@ -1,0 +1,77 @@
+/*
+  Design tokens
+  Every colour is defined once with light-dark(); the active scheme comes from
+  color-scheme, which follows the OS unless the user picks a theme in Settings
+  (data-theme="light" | "dark" on <html>).
+*/
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces */
+  --canvas: light-dark(#e8eeed, #090f0e);
+  --page: light-dark(#f5f7f7, #0e1514);
+  --surface: light-dark(#ffffff, #151f1d);
+  --surface-muted: light-dark(#eef2f1, #1b2724);
+  --surface-raised: light-dark(#ffffff, #243532);
+
+  /* Text */
+  --ink: light-dark(#0f1a19, #e9f0ee);
+  --muted: light-dark(#53635f, #a1b2ae);
+  --on-accent: light-dark(#ffffff, #052320);
+
+  /* Lines */
+  --line: light-dark(#dbe3e1, #28373a);
+  --line-strong: light-dark(#bcc8c5, #3d514d);
+
+  /* Brand */
+  --accent: light-dark(#0f766e, #2dd4bf);
+  --accent-hover: light-dark(#0b625b, #5eead4);
+  --accent-text: light-dark(#0b625b, #5eead4);
+  --accent-soft: light-dark(#e2f2ef, #123330);
+  --accent-wash: light-dark(#f0f8f6, #112321);
+
+  /* Status */
+  --danger: light-dark(#b42318, #f4877c);
+  --danger-soft: light-dark(#fdeceb, #3a1d1b);
+  --success: light-dark(#15803d, #4ade80);
+  --warning: light-dark(#b45309, #fbbf24);
+  --camera-ok: #22c55e;
+  --camera-warn: #f59e0b;
+  --camera-bad: #ef4444;
+
+  /* Depth */
+  --shadow-sm: 0 1px 2px light-dark(rgb(15 26 25 / 6%), rgb(0 0 0 / 40%));
+  --shadow-lg: 0 18px 48px light-dark(rgb(15 26 25 / 18%), rgb(0 0 0 / 60%));
+  --scrim: rgb(6 14 13 / 56%);
+
+  /* Shape and spacing */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --tap: 44px;
+  --shell-width: 520px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+
+  /* Type */
+  --font-size: 16px;
+  --font-ar: "Cairo", Tahoma, system-ui, sans-serif;
+  --font-en: "Inter", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-ui: var(--font-ar);
+  --text-xs: .75rem;
+  --text-sm: .875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+}
+
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[lang="en"] { --font-ui: var(--font-en); }
+html.fs-large { --font-size: 18px; }
+html.fs-xlarge { --font-size: 20px; }

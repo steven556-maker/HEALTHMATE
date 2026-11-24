@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!worker/.dev.vars.example
+web/vendor/
+.wrangler
+coverage
+test-results/
+playwright-report/
+*.log
+*.sqlite
+*.sqlite3
+.DS_Store

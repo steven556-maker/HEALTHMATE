@@ -1,0 +1,45 @@
+name = "healthmate-assistant"
+main = "src/index.ts"
+compatibility_date = "2026-11-18"
+
+[vars]
+# أصل واحد أو أكتر مفصولين بفاصلة. لازم تغيّره: لو سيبته كده الـ Worker بيرفض كل الطلبات.
+ALLOWED_ORIGIN = "https://steven556-maker.github.io"
+# نفس قيم الواجهة (المفتاح العام فقط). الـ Worker بيستخدمهم عشان يتحقق من توكن المستخدم.
+# SUPABASE_URL and SUPABASE_ANON_KEY are provisioned as Worker secrets (never commit credentials here).
+# Gemini model chain. API keys are secrets, never put them in this file.
+GEMINI_MODELS = "gemini-3.8-flash,gemini-3.7-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3-flash-preview,gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.5-pro,gemini-flash-latest,gemini-flash-lite-latest"
+GROQ_MODEL = "openai/gpt-oss-120b"
+# الحد اليومي لعدد الرسائل لكل مستخدم
+DAILY_LIMIT = "30"
+# Web Push (شوف قسم Web Push تحت)
+VAPID_PUBLIC_KEY = "REPLACE_WITH_VAPID_PUBLIC_KEY"
+VAPID_SUBJECT = "mailto:you@example.com"
+PUSH_WINDOW_MIN = "5"
+
+# معرّف KV يُحقن أثناء نشر CI من متغير RATE_KV_NAMESPACE_ID (أو يُستبدل محليًا بعد إنشاء الـ namespace).
+[[kv_namespaces]]
+binding = "RATE_KV"
+id = "4fd9a0234ac3414bae9852c7673f62e5"
+
+# 10 chat requests per minute per client IP (hashed before sending to the binding).
+[[ratelimits]]
+name = "CHAT_RATE_LIMIT"
+namespace_id = "287641"
+
+[ratelimits.simple]
+limit = 10
+period = 60
+
+# مفاتيح المزوّد: npx wrangler secret put GEMINI_API_KEY
+# اختياري: npx wrangler secret put GROQ_API_KEY
+
+# ===== Web Push (تذكير الأدوية والتطبيق مقفول) =====
+# 1) ولّد مفاتيح VAPID:  node scripts/gen-vapid.mjs
+# 2) VAPID_PUBLIC_KEY هنا (عام)، والسر: npx wrangler secret put VAPID_PRIVATE_JWK
+# 3) حط نفس المفتاح العام في .env الخاص بالواجهة: VITE_PUSH_PUBLIC_KEY
+# ملاحظة: الـ cron كل 5 دقايق يكفي الخطة المجانية (عمليات list يومية محدودة). التذكير ممكن يتأخر لحد 5 دقايق.
+# لدقة الدقيقة: غيّره لـ "* * * * *" و PUSH_WINDOW_MIN = "2" (محتاج خطة Workers Paid).
+
+[triggers]
+crons = ["*/5 * * * *"]

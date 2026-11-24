@@ -1,0 +1,31 @@
+.health-dashboard { display: grid; gap: var(--space-4); color: var(--ink); }
+.health-dashboard-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.health-dashboard-eyebrow { color: var(--accent-text); font-size: var(--text-xs); font-weight: 700; letter-spacing: .12em; }
+.health-dashboard-heading h2 { margin: 2px 0 0; font-size: var(--text-lg); }
+.health-dashboard-range { display: flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface-muted); }
+.health-dashboard-range button { min-height: 36px; padding-inline: 14px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font-size: var(--text-sm); font-weight: 500; transition: background .15s, color .15s; }
+.health-dashboard-range button[aria-pressed="true"] { background: var(--surface-raised); color: var(--accent-text); font-weight: 700; box-shadow: var(--shadow-sm); }
+.health-dashboard-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.health-metric { display: grid; gap: 4px; align-content: start; min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.health-metric-top { display: flex; align-items: center; justify-content: space-between; min-height: 24px; gap: 6px; }
+.health-metric-top > span:first-child, .health-metric small { color: var(--muted); font-size: var(--text-xs); line-height: 1.4; }
+.health-metric strong { color: var(--ink); font-size: 1.5rem; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+.health-metric-ring { display: block; width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; background: conic-gradient(var(--accent) var(--progress), var(--line) var(--progress)); -webkit-mask: radial-gradient(farthest-side, transparent 58%, #000 61%); mask: radial-gradient(farthest-side, transparent 58%, #000 61%); }
+.health-dashboard-chart { padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.health-dashboard-chart h3 { margin-block-end: var(--space-2); font-size: var(--text-sm); }
+.health-chart { display: block; width: 100%; height: auto; margin-block: 4px var(--space-2); overflow: visible; }
+.health-chart-grid { stroke: var(--line); stroke-width: 1; }
+.health-chart-line { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.health-chart-dot { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; }
+.health-chart-label { fill: var(--muted); font: 10px var(--font-ui); }
+.health-dashboard-note { margin: 0; color: var(--muted); font-size: var(--text-xs); line-height: 1.5; }
+.health-dashboard-note:last-child { text-align: center; }
+.health-compare { margin: var(--space-2) 0; padding: 10px 12px; color: var(--accent-text); font-size: var(--text-sm); font-weight: 600; }
+.health-weight-disclosure { padding: 4px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.health-weight-disclosure > summary { font-size: var(--text-sm); }
+.health-weight-disclosure strong { margin-inline-start: auto; color: var(--accent-text); font-size: var(--text-sm); }
+.weight-chart { margin-block: var(--space-3) 6px; }
+@media (max-width: 360px) {
+  .health-dashboard-metrics { gap: var(--space-2); }
+  .health-metric { padding: 12px; }
+}
