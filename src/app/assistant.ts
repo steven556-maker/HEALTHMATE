@@ -3,6 +3,7 @@ import { getLocale, t } from "./i18n.ts";
 import { store } from "./storage.ts";
 import { assistantUrl as ASSISTANT_URL, hasSupabaseConfig } from "./cloud-config.ts";
 import { $ } from "./ui.ts";
+import { getProfile } from "./profile.ts";
 import { staticReply } from "../../worker/src/fallback.js";
 import { getAssistantReply, TEMPORARY_REASONS } from "../core/assistant-reply.ts";
 import type { Attempt } from "../core/assistant-reply.ts";
@@ -68,7 +69,7 @@ const GREETING = {
 function renderGreeting(root: HTMLElement): void {
   const en = getLocale() === "en" ? 1 : 0;
   const box = document.createElement("div"); box.className = "chat-greeting";
-  const p = document.createElement("p"); p.textContent = GREETING.hello[en]; box.append(p);
+  const p = document.createElement("p"); const nm = getProfile().name; p.textContent = (nm ? `${en ? "Hi" : "أهلًا"} ${nm}. ` : "") + GREETING.hello[en]; box.append(p);
   const row = document.createElement("div"); row.className = "chat-chips";
   for (const c of GREETING.chips) {
     const b = document.createElement("button"); b.type = "button"; b.className = "chat-chip"; b.textContent = c[en];
