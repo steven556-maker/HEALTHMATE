@@ -102,6 +102,8 @@
   "cameraConsent": "We use the camera to track movement. Processing stays on this device and images are not saved.",
   "startCamera": "Start workout",
   "back": "Back",
+  "skipToContent": "Skip to content",
+  "unexpectedError": "Something unexpected went wrong. Try again; your data on this device is unchanged.",
   "loading": "Loading…",
   "correct": "Correct",
   "needsWork": "Needs work",
