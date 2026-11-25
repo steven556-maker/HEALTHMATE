@@ -293,3 +293,12 @@ main { padding-block-end: 128px; }
 #welcome .sheet::before { content: ""; display: block; width: 96px; height: 96px; margin: 0 auto var(--space-3); border-radius: 50%; background: radial-gradient(circle, #fff 0 5%, var(--accent) 6% 22%, rgb(34 197 94 / 55%) 42%, transparent 70%); box-shadow: 0 0 50px var(--glow); }
 #welcome h1 { text-align: center; }
 @media (prefers-reduced-motion: reduce) { #tab-assistant > .panel::before { animation: none; } .exercise-card-art, .skeleton { animation: none; } }
+
+/* تفاصيل التمرين ومؤقت الراحة */
+.intro-details { margin-block: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); border: 1px solid var(--border, transparent); }
+.intro-details h3, .rest-box h3 { margin: 0 0 var(--space-2); font-size: var(--text-md, 1rem); }
+.detail-steps { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: 6px; }
+.detail-mistake { margin: var(--space-2) 0 0; color: var(--warning, inherit); }
+.rest-box { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); display: grid; gap: var(--space-2); }
+.rest-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.rest-clock { margin: 0; font-size: 2.5rem; font-weight: 900; text-align: center; color: var(--accent); font-variant-numeric: tabular-nums; }
