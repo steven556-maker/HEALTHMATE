@@ -7,6 +7,7 @@ import { withRetry } from "./retry.js";
 import { Cooldowns, cooldownFor, parseModels } from "./models.ts";
 import type { ModelFailure } from "./models.ts";
 import { staticReply } from "./fallback.js";
+import { ALLOWED_IMAGE_MIME, FOOD_PROMPT, MAX_IMAGE_B64, parseFoodReply } from "./food.ts";
 
 interface Env {
   GEMINI_API_KEY?: string;
@@ -24,6 +25,7 @@ interface Env {
   VAPID_SUBJECT?: string;
   PUSH_WINDOW_MIN?: string;
   DAILY_LIMIT?: string;
+  FOOD_DAILY_LIMIT?: string;
 }
 
 /** موديلات استنفدت حصتها مؤخرًا. في ذاكرة الـ isolate (من غير كتابة على KV المحدود في الخطة المجانية). */
@@ -221,6 +223,58 @@ async function handleChat(request: Request, env: Env, cors: Record<string, strin
   return json({ text: staticFallback(question, body.locale ?? "ar"), source: "fallback", reason: reason ?? "provider_error" }, 200, cors);
 }
 
+/** تحليل صورة أكل: بيرجّع اسم الأكلة (من قائمة ثابتة) ووزن تقريبي بس. الصورة ما بتتخزنش، والسعرات بتتحسب في التطبيق من الجدول. */
+async function handleFood(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
+  if (!env.RATE_KV || !env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return json({ error: "server_misconfigured" }, 500, cors);
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  if (env.CHAT_RATE_LIMIT) {
+    const { success } = await env.CHAT_RATE_LIMIT.limit({ key: await hashedIp(ip) });
+    if (!success) return json({ error: "rate_limited" }, 429, { ...cors, "Retry-After": "60" });
+  } else {
+    const rate = await incrementIpRateLimit(env.RATE_KV, ip);
+    if (!rate.allowed) return json({ error: "rate_limited" }, 429, { ...cors, "Retry-After": String(rate.retryAfter) });
+  }
+  const token = bearerToken(request.headers.get("Authorization"));
+  const userId = token ? await verifySupabaseUser(token, env.SUPABASE_URL, env.SUPABASE_ANON_KEY) : null;
+  if (!userId) return json({ error: "unauthorized" }, 401, cors);
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > MAX_IMAGE_B64 + 1000) return json({ error: "image_too_large" }, 413, cors);
+  let body: { image?: unknown; mime?: unknown };
+  try { body = await request.json() as typeof body; } catch { return json({ error: "invalid_json" }, 400, cors); }
+  const mime = typeof body.mime === "string" ? body.mime : "";
+  const image = typeof body.image === "string" ? body.image : "";
+  if (!(ALLOWED_IMAGE_MIME as readonly string[]).includes(mime) || !image || !/^[A-Za-z0-9+/]+=*$/.test(image)) return json({ error: "invalid_image" }, 400, cors);
+  if (image.length > MAX_IMAGE_B64) return json({ error: "image_too_large" }, 413, cors);
+  const limit = Math.max(1, Number(env.FOOD_DAILY_LIMIT) || 10);
+  const quota = await consumeDailyQuota(env.RATE_KV, `food:${userId}`, limit);
+  if (!quota.allowed) return json({ error: "daily_limit" }, 429, { ...cors, "Retry-After": "3600" });
+  const models = parseModels(env.GEMINI_MODELS);
+  if (!env.GEMINI_API_KEY || !models.length) return json({ error: "food_unavailable" }, 503, cors);
+  const client = new OpenAI({ apiKey: env.GEMINI_API_KEY, baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/", maxRetries: 0 });
+  const deadline = Date.now() + AI_BUDGET_MS;
+  for (const model of models) {
+    const remaining = Math.min(PER_CALL_TIMEOUT_MS, deadline - Date.now());
+    if (remaining < 1_500) break;
+    if (cooldowns.isCold(model)) continue;
+    try {
+      const response = await client.chat.completions.create({
+        model, max_tokens: 256,
+        messages: [{ role: "user", content: [{ type: "text", text: FOOD_PROMPT }, { type: "image_url", image_url: { url: `data:${mime};base64,${image}` } }] }],
+      }, { timeout: remaining });
+      const text = response.choices[0]?.message?.content;
+      if (typeof text !== "string" || !text.trim()) throw new Error("Empty AI response");
+      cooldowns.clear(model);
+      const guess = parseFoodReply(text);
+      return json({ dish: guess.dishId ?? "unknown", grams: guess.grams }, 200, cors);
+    } catch (error) {
+      const failure = upstreamError(error, "Gemini", model);
+      cooldowns.mark(model, cooldownFor(failure));
+      if (failure.status === 401 || failure.status === 403) break;
+    }
+  }
+  return json({ error: "food_unavailable" }, 503, cors);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const allowedOrigins = parseAllowedOrigins(env.ALLOWED_ORIGIN);
@@ -247,6 +301,10 @@ export default {
       const userId = token ? await verifySupabaseUser(token, env.SUPABASE_URL, env.SUPABASE_ANON_KEY) : null;
       if (!userId) return json({ error: "unauthorized" }, 401, cors);
       return handlePush(request, path, userId, env.RATE_KV as PushKv, cors);
+    }
+    if (path === "/api/food") {
+      try { return await handleFood(request, env, cors); }
+      catch (error) { console.error("[food] Request failed", upstreamError(error, "request", "unknown")); return json({ error: "food_unavailable" }, 503, cors); }
     }
     if (path !== "/api/chat") return json({ error: "not_found" }, 404, cors);
     try { return await handleChat(request, env, cors); }
