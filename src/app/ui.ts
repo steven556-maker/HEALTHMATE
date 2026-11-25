@@ -29,3 +29,15 @@ export function setFieldError(id: string, message: string): void {
   element.textContent = message;
   element.hidden = !message;
 }
+
+/** حالة فارغة واضحة (أيقونة + جملة) بدل نص مجرد، من غير أي أرقام تجريبية. */
+export function showEmptyState(root: HTMLElement, message: string): void {
+  root.textContent = "";
+  const box = document.createElement("div");
+  box.className = "empty-state";
+  box.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>';
+  const p = document.createElement("p");
+  p.textContent = message;
+  box.append(p);
+  root.append(box);
+}
