@@ -302,3 +302,17 @@ main { padding-block-end: 128px; }
 .rest-box { margin-top: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); display: grid; gap: var(--space-2); }
 .rest-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .rest-clock { margin: 0; font-size: 2.5rem; font-weight: 900; text-align: center; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* تحية المساعد وزر الإرسال */
+.chat-greeting { padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); display: grid; gap: var(--space-2); }
+.chat-greeting p { margin: 0; }
+.chat-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chat-chip { min-height: 40px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--accent); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.chat-chip:hover { background: var(--glow); }
+.send-orb { width: 52px; height: 52px; min-height: 52px; padding: 0; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 0 22px var(--glow); }
+.send-orb svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* ملخص الأسبوع */
+.weekly-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-block: var(--space-2); }
+.weekly-cell { display: grid; justify-items: center; gap: 2px; padding: var(--space-2); border-radius: var(--radius); background: var(--surface-muted); }
+.weekly-cell b { font-size: 1.75rem; font-weight: 900; color: var(--accent); font-variant-numeric: tabular-nums; }
+.weekly-cell small { text-align: center; }
