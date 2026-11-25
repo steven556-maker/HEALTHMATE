@@ -1,5 +1,5 @@
 /*
-  Design tokens
+  Design tokens: "Neon Pulse" (graphite surfaces, one electric-lime accent)
   Every colour is defined once with light-dark(); the active scheme comes from
   color-scheme, which follows the OS unless the user picks a theme in Settings
   (data-theme="light" | "dark" on <html>).
@@ -8,27 +8,27 @@
   color-scheme: light dark;
 
   /* Surfaces */
-  --canvas: light-dark(#e8eeed, #090f0e);
-  --page: light-dark(#f5f7f7, #0e1514);
-  --surface: light-dark(#ffffff, #151f1d);
-  --surface-muted: light-dark(#eef2f1, #1b2724);
-  --surface-raised: light-dark(#ffffff, #243532);
+  --canvas: light-dark(#e4eaf2, #050816);
+  --page: light-dark(#f3f6fb, #070c1d);
+  --surface: light-dark(#ffffff, #0d1428);
+  --surface-muted: light-dark(#eaeff7, #141c36);
+  --surface-raised: light-dark(#ffffff, #1a2444);
 
   /* Text */
-  --ink: light-dark(#0f1a19, #e9f0ee);
-  --muted: light-dark(#53635f, #a1b2ae);
-  --on-accent: light-dark(#ffffff, #052320);
+  --ink: light-dark(#0a1124, #f2f6ff);
+  --muted: light-dark(#56627a, #9aa6c2);
+  --on-accent: light-dark(#ffffff, #0c1400);
 
   /* Lines */
-  --line: light-dark(#dbe3e1, #28373a);
-  --line-strong: light-dark(#bcc8c5, #3d514d);
+  --line: light-dark(#d6deec, rgb(255 255 255 / 9%));
+  --line-strong: light-dark(#b7c3da, rgb(255 255 255 / 18%));
 
   /* Brand */
-  --accent: light-dark(#0f766e, #2dd4bf);
-  --accent-hover: light-dark(#0b625b, #5eead4);
-  --accent-text: light-dark(#0b625b, #5eead4);
-  --accent-soft: light-dark(#e2f2ef, #123330);
-  --accent-wash: light-dark(#f0f8f6, #112321);
+  --accent: light-dark(#3f7a0a, #b8f23d);
+  --accent-hover: light-dark(#336508, #cdff62);
+  --accent-text: light-dark(#376a08, #b8f23d);
+  --accent-soft: light-dark(#e6f4c8, rgb(184 242 61 / 14%));
+  --accent-wash: light-dark(#f1f8e1, rgb(184 242 61 / 6%));
 
   /* Status */
   --danger: light-dark(#b42318, #f4877c);
@@ -39,15 +39,20 @@
   --camera-warn: #f59e0b;
   --camera-bad: #ef4444;
 
+  /* Glass cards (translucent over the navy glow backdrop) */
+  --glass: light-dark(rgb(255 255 255 / 80%), rgb(255 255 255 / 5%));
+  --glass-strong: light-dark(#ffffff, rgb(255 255 255 / 8%));
+
   /* Depth */
-  --shadow-sm: 0 1px 2px light-dark(rgb(15 26 25 / 6%), rgb(0 0 0 / 40%));
-  --shadow-lg: 0 18px 48px light-dark(rgb(15 26 25 / 18%), rgb(0 0 0 / 60%));
+  --glow: light-dark(rgb(63 122 10 / 28%), rgb(184 242 61 / 30%));
+  --shadow-sm: 0 1px 2px light-dark(rgb(15 26 10 / 8%), rgb(0 0 0 / 50%));
+  --shadow-lg: 0 24px 60px light-dark(rgb(15 26 10 / 20%), rgb(0 0 0 / 70%));
   --scrim: rgb(6 14 13 / 56%);
 
   /* Shape and spacing */
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 20px;
+  --radius: 20px;
+  --radius-lg: 20px;
   --radius-xl: 20px;
   --space-1: 4px;
   --space-2: 8px;
