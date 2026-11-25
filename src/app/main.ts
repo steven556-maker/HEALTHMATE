@@ -638,6 +638,12 @@ initProgress({ backToPicker, startSession, endSession, activate, getSession: () 
 initMedications();
 initAssistant();
 initRoutine();
+// حماية من clickjacking على GitHub Pages (مفيش X-Frame-Options/frame-ancestors هناك): لو الصفحة اتفتحت جوه iframe نخفيها ونطلع منها.
+if (window.top !== window.self) {
+  document.documentElement.style.display = "none";
+  try { if (window.top) window.top.location.href = window.self.location.href; } catch { /* iframe من أصل تاني: الصفحة مخفية أصلًا */ }
+}
+// شبكة أمان: أي خطأ غير ملتقط يظهر كرسالة هادئة بدل ما التطبيق يبان معلّق (من غير ما نعرض تفاصيل تقنية أو بيانات)
 let lastGlobalError = 0;
 const reportUnexpected = (): void => {
   if (Date.now() - lastGlobalError < 5000) return;
