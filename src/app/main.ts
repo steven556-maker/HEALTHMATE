@@ -8,6 +8,7 @@ import { createCounter } from "../core/repCounter.ts";
 import type { CounterEvent } from "../core/repCounter.ts";
 import { metricKeysFor } from "../core/formChecker.ts";
 import { createCueThrottle, sayCount } from "../core/cues.ts";
+import { initProfile } from "./profile.ts";
 import { renderExerciseDetails, renderRestTimer, nextSetNumber, stopRestTimer } from "./exercise-details.ts";
 import { EXERCISE_COPY, cueText, exerciseName } from "./exercise-copy.ts";
 import { $, showToast } from "./ui.ts";
@@ -643,6 +644,7 @@ window.addEventListener("healthmate:locale", () => {
 renderPicker();
 initProgress({ backToPicker, startSession, endSession, activate, getSession: () => session });
 initMedications();
+initProfile();
 initAssistant();
 initRoutine();
 // حماية من clickjacking على GitHub Pages (مفيش X-Frame-Options/frame-ancestors هناك): لو الصفحة اتفتحت جوه iframe نخفيها ونطلع منها.
