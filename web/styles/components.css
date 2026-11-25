@@ -316,3 +316,71 @@ main { padding-block-end: 128px; }
 .weekly-cell { display: grid; justify-items: center; gap: 2px; padding: var(--space-2); border-radius: var(--radius); background: var(--surface-muted); }
 .weekly-cell b { font-size: 1.75rem; font-weight: 900; color: var(--accent); font-variant-numeric: tabular-nums; }
 .weekly-cell small { text-align: center; }
+.med-edit { display: grid; gap: var(--space-2); margin-block: var(--space-2); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); }
+.profile-box { display: grid; gap: var(--space-2); padding: var(--space-3); margin-block: var(--space-2); border-radius: var(--radius); background: var(--surface-muted); }
+.profile-box h3 { margin: 0; }
+.food-card { display: grid; gap: var(--space-3); }
+.food-card h2 { margin: 0; }
+.food-group { display: grid; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); }
+.food-group h3 { margin: 0; font-size: var(--text-md, 1rem); }
+.food-group .field { margin-block-end: 0; }
+.food-group .cloud-consent { margin-block: 0; }
+.food-card .field input, .food-card .select-field, .profile-box .field input, .med-edit .field input { background: var(--surface); border: 1.5px solid var(--line-strong); color: var(--ink); }
+.food-card .field input::placeholder { color: var(--muted); opacity: .9; }
+.food-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.food-totals p { margin: 0; padding: var(--space-2); border-radius: var(--radius); background: var(--surface-muted); text-align: center; font-weight: 700; }
+.food-totals p.hint { grid-column: 1 / -1; font-weight: 400; }
+.food-card, .weekly-card { scroll-margin-top: 84px; }
+.top { background: color-mix(in srgb, var(--page) 92%, transparent) !important; }
+.food-preview { margin: 0; font-weight: 800; color: var(--accent); min-height: 1.4em; }
+.food-totals p { margin: 4px 0; }
+
+/* ===== عمق ثلاثي الأبعاد وحركة ناعمة =====
+   خفيف على الموبايل: بس transform/opacity/box-shadow (مفيش blur جديد). كل الحركة بتتقفل مع prefers-reduced-motion. */
+:root {
+  --depth-1: 0 1px 0 rgb(255 255 255 / 55%) inset, 0 1px 2px rgb(10 20 5 / 10%), 0 6px 14px -4px rgb(10 20 5 / 14%), 0 18px 32px -14px rgb(10 20 5 / 18%);
+  --depth-2: 0 1px 0 rgb(255 255 255 / 70%) inset, 0 2px 4px rgb(10 20 5 / 12%), 0 12px 24px -6px rgb(10 20 5 / 20%), 0 28px 48px -16px rgb(10 20 5 / 26%);
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+}
+:root[data-theme="dark"], :root:not([data-theme="light"]) { color-scheme: light dark; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --depth-1: 0 1px 0 rgb(255 255 255 / 7%) inset, 0 2px 4px rgb(0 0 0 / 40%), 0 14px 28px -8px rgb(0 0 0 / 55%); --depth-2: 0 1px 0 rgb(255 255 255 / 10%) inset, 0 4px 8px rgb(0 0 0 / 45%), 0 24px 44px -10px rgb(0 0 0 / 65%); }
+}
+:root[data-theme="dark"] { --depth-1: 0 1px 0 rgb(255 255 255 / 7%) inset, 0 2px 4px rgb(0 0 0 / 40%), 0 14px 28px -8px rgb(0 0 0 / 55%); --depth-2: 0 1px 0 rgb(255 255 255 / 10%) inset, 0 4px 8px rgb(0 0 0 / 45%), 0 24px 44px -10px rgb(0 0 0 / 65%); }
+
+.panel { box-shadow: var(--depth-1); background-image: linear-gradient(180deg, rgb(255 255 255 / 5%), transparent 40%); }
+.food-group, .weekly-cell, .intro-details, .rest-box, .chat-greeting, .profile-box, .med-edit, .food-totals p { box-shadow: var(--depth-1); }
+.btn { box-shadow: 0 1px 0 rgb(255 255 255 / 25%) inset, 0 2px 0 rgb(0 0 0 / 10%), 0 6px 14px -6px rgb(0 0 0 / 25%); }
+.btn.primary { background-image: linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, #fff), var(--accent)); box-shadow: 0 1px 0 rgb(255 255 255 / 40%) inset, 0 3px 0 color-mix(in srgb, var(--accent) 55%, #000), 0 10px 22px -8px var(--glow); }
+.btn:active { transform: translateY(2px); box-shadow: 0 0 0 rgb(0 0 0 / 0%), 0 2px 6px -3px rgb(0 0 0 / 30%); }
+.btn.primary:active { box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 55%, #000), 0 4px 10px -6px var(--glow); }
+
+/* دخول الشاشات والكروت: ظهور ناعم مع طلوع بسيط، وبتأخير متدرّج */
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+.tab:not([hidden]) > .panel, .tab:not([hidden]) #cards > .exercise-card { animation: rise-in .5s var(--ease-out) both; }
+.tab:not([hidden]) > .panel:nth-child(2), .exercise-card:nth-child(2) { animation-delay: .06s; }
+.tab:not([hidden]) > .panel:nth-child(3), .exercise-card:nth-child(3) { animation-delay: .12s; }
+.tab:not([hidden]) > .panel:nth-child(4), .exercise-card:nth-child(4) { animation-delay: .18s; }
+.tab:not([hidden]) > .panel:nth-child(n+5), .exercise-card:nth-child(n+5) { animation-delay: .24s; }
+
+/* إمالة ثلاثية الأبعاد على الأجهزة اللي فيها ماوس بس (مفيش على اللمس) */
+@media (hover: hover) and (pointer: fine) {
+  .exercise-card, .weekly-cell, .food-group { transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out); transform-style: preserve-3d; }
+  #cards { perspective: 900px; }
+  .exercise-card:hover { transform: translateY(-4px) rotateX(2.5deg) rotateY(-2deg); box-shadow: var(--depth-2); }
+  .weekly-cell:hover, .food-group:hover { transform: translateY(-3px); box-shadow: var(--depth-2); }
+}
+.exercise-card { box-shadow: var(--depth-1); }
+.exercise-card:active { transform: translateY(1px) scale(.99); }
+.exercise-card-art { box-shadow: 0 1px 0 rgb(255 255 255 / 25%) inset, 0 8px 18px -8px rgb(0 0 0 / 35%); }
+.chat-chip { box-shadow: var(--depth-1); transition: transform .2s var(--ease-out), box-shadow .2s; }
+.chat-chip:active { transform: scale(.96); }
+.send-orb:active { transform: scale(.92); }
+.healthmate-nav-host button { transition: transform .25s var(--ease-out); }
+.healthmate-nav-host button:active { transform: scale(.92); }
+.weekly-cell b, .rest-clock { text-shadow: 0 2px 10px var(--glow); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab:not([hidden]) > .panel, .tab:not([hidden]) #cards > .exercise-card { animation: none; }
+  .exercise-card, .weekly-cell, .food-group, .btn, .chat-chip, .send-orb, .healthmate-nav-host button { transition: none !important; transform: none !important; }
+}
