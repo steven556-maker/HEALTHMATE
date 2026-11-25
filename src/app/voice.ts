@@ -1,4 +1,4 @@
-
+// تنبيهات صوتية بالعامية المصرية عبر Web Speech API (على الجهاز)
 import { getLocale } from "./i18n.ts";
 import { AudioCoordinator, type CueAction } from "./audio-coordinator.ts";
 
