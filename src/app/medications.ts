@@ -7,7 +7,7 @@ import { pushState, enablePush, disablePush } from "./push.ts";
 import { dateKey } from "../core/medications.ts";
 import { t } from "./i18n.ts";
 import { notifyLocalDataChanged } from "./cloud-events.ts";
-import { $, setFieldError, showToast } from "./ui.ts";
+import { $, setFieldError, showEmptyState, showToast } from "./ui.ts";
 import { enableReminders, reminderState } from "./reminders.ts";
 import { readAllMedications, readMedications } from "./med-store.ts";
 
@@ -107,7 +107,7 @@ function renderMedications(): void {
   const root = $("med-list");
   root.replaceChildren();
   const meds = readMedications();
-  if (!meds.length) { root.textContent = t("noMedications"); return; }
+  if (!meds.length) { showEmptyState(root, t("noMedications")); return; }
   const now = new Date();
 
   // جرعات النهارده: زرّين (تم / فاتت) لكل جرعة مجدولة
