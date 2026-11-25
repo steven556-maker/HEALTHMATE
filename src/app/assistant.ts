@@ -5,6 +5,7 @@ import { assistantUrl as ASSISTANT_URL, hasSupabaseConfig } from "./cloud-config
 import { $ } from "./ui.ts";
 import { getProfile } from "./profile.ts";
 import { staticReply } from "../../worker/src/fallback.js";
+import { stripMarkdown } from "../core/plain-text.ts";
 import { getAssistantReply, TEMPORARY_REASONS } from "../core/assistant-reply.ts";
 import type { Attempt } from "../core/assistant-reply.ts";
 
@@ -84,7 +85,7 @@ function renderChat(typing = false): void {
   for (const item of chatHistory()) {
     const bubble = document.createElement("div"); bubble.className = "chat-message";
     const role = item.role === "user" ? t("you") : t("assistant");
-    bubble.textContent = `${role}: ${item.content}`; root.append(bubble);
+    bubble.textContent = `${role}: ${item.role === "user" ? item.content : stripMarkdown(item.content)}`; root.append(bubble);
   }
   if (typing) { const bubble = document.createElement("div"); bubble.className = "chat-message chat-typing"; bubble.setAttribute("aria-label", t("assistantTyping")); bubble.textContent = t("assistantTyping"); root.append(bubble); }
   root.scrollTop = root.scrollHeight;
