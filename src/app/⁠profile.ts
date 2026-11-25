@@ -1,4 +1,5 @@
-
+// ملف شخصي بسيط (اسم/سن/طول). بيتخزن على الجهاز بس: مش بيتزامن، مش في النسخة الاحتياطية، ومش بيتبعت للمساعد.
+// "مسح كل البيانات" بيمسحه (hm.profile في ALL_LOCAL_KEYS).
 import { getLocale } from "./i18n.ts";
 
 export interface Profile { name: string; age?: number; heightCm?: number }
