@@ -31,7 +31,9 @@ const cooldowns = new Cooldowns();
 const SYSTEM_AR = "أنت مساعد داخل تطبيق HEALTHMATE، مهمتك تقديم توعية صحية عامة ومساعدة المستخدم على التمارين والسجلات الصحية. رد باختصار وبالعربي، ولو السؤال خارج نطاق التطبيق قل إنك مش متخصص فيه. لا تشخّص ولا تقترح جرعات أو تعديل أو إيقاف دواء. إذا ذكر المستخدم ألم صدر أو ضيق نفس أو دوخة شديدة، وجّهه لطلب مساعدة طبية عاجلة. التطبيق لا يستبدل الطبيب.";
 const SYSTEM_EN = "You are an assistant in HEALTHMATE, a home exercise and health tracking app. Briefly answer in English. If a question is outside the app's scope, say you are not a specialist in it. Provide general health awareness only: do not diagnose, recommend medication doses, or suggest changing or stopping medication. Direct chest pain, shortness of breath, or severe dizziness to urgent medical care. This app does not replace a clinician.";
 
-const json = (body: unknown, status: number, headers: Record<string, string>) => Response.json(body, { status, headers });
+// رؤوس أمان لكل رد من الـ Worker: منع تخمين نوع المحتوى، ومنع تخزين ردود فيها بيانات المستخدم، وعدم تسريب الـ referrer، ومنع التضمين في iframe.
+const SECURITY_HEADERS = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'" };
+const json = (body: unknown, status: number, headers: Record<string, string>) => Response.json(body, { status, headers: { ...SECURITY_HEADERS, ...headers } });
 
 async function handlePush(request: Request, path: string, userId: string, kv: PushKv, cors: Record<string, string>): Promise<Response> {
   if (typeof kv.list !== "function" || typeof kv.delete !== "function") return json({ error: "server_misconfigured" }, 500, cors);
