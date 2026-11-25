@@ -23,7 +23,7 @@ import { initMedications, renderMedications } from "./medications.ts";
 import { initAssistant } from "./assistant.ts";
 import { initProgress, renderProgress } from "./progress.ts";
 import type { Settings, FontSize, Theme } from "./storage.ts";
-import { initVoice, speak, setMuted, canSpeakCurrentLocale, playRecordedCue } from "./voice.ts";
+import { initVoice, unlockAudio, speak, setMuted, canSpeakCurrentLocale, playRecordedCue } from "./voice.ts";
 import { applyLocale, getLocale, t } from "./i18n.ts";
 import { initRoutine } from "./routine.ts";
 
@@ -293,6 +293,7 @@ function cueRecording(exerciseId: string, cueId: string): number | undefined {
 }
 
 async function startSession(): Promise<void> {
+  unlockAudio(); // لازم قبل أي await عشان iOS يعتبرها لمسة مستخدم
   const def = pendingExercise;
   if (!def) return;
   // استبيان الجاهزية: مرة واحدة قبل أول جلسة
