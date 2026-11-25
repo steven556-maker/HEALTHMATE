@@ -1,11 +1,11 @@
 import {
-  addStock, daysLeft, dosesForDay, isLowStock, medicationSummary as summarize, newMedication,
+  addStock, daysLeft, editMedication, dosesForDay, isLowStock, medicationSummary as summarize, newMedication,
   parseTimes, removeMedication, stockOf, toggleDoseStatus,
 } from "../core/medications.ts";
 import type { Medication } from "../core/medications.ts";
 import { pushState, enablePush, disablePush } from "./push.ts";
 import { dateKey } from "../core/medications.ts";
-import { t } from "./i18n.ts";
+import { getLocale, t } from "./i18n.ts";
 import { notifyLocalDataChanged } from "./cloud-events.ts";
 import { $, setFieldError, showEmptyState, showToast } from "./ui.ts";
 import { enableReminders, reminderState } from "./reminders.ts";
@@ -165,7 +165,31 @@ function renderMedications(): void {
       window.clearTimeout(armed);
       updateMedication(med.id, (row) => removeMedication(row, Date.now()));
     };
-    card.append(refill, remove);
+    // تعديل: فورم صغير جوه الكارت (الاسم/الجرعة/المواعيد). السجل والمخزون ما بيتغيروش.
+    const edit = el("button", "btn", (getLocale() === "en" ? "Edit" : "تعديل")); edit.type = "button";
+    edit.onclick = () => {
+      const form = el("div", "med-edit");
+      const mk = (label: string, value: string, max: number): HTMLInputElement => {
+        const wrap = el("label", "field"); wrap.append(el("span", "", label));
+        const input = el("input"); input.value = value; input.maxLength = max; wrap.append(input); form.append(wrap); return input;
+      };
+      const nameIn = mk(t("medicationName"), med.name, 80);
+      const doseIn = mk(t("medicationDose"), med.dose, 100);
+      const timesIn = mk(t("medicationTimes"), med.times, 60);
+      const err = el("p", "form-error"); err.setAttribute("role", "alert"); err.hidden = true;
+      const save = el("button", "btn primary", t("save")); save.type = "button";
+      save.onclick = () => {
+        const next = editMedication(med, { name: nameIn.value, dose: doseIn.value, times: timesIn.value }, Date.now());
+        if (next === med) { err.textContent = t("medicationInvalid"); err.hidden = false; return; }
+        updateMedication(med.id, (row) => editMedication(row, { name: nameIn.value, dose: doseIn.value, times: timesIn.value }, Date.now()));
+        showToast(t("save"));
+      };
+      const cancel = el("button", "btn", t("back")); cancel.type = "button";
+      cancel.onclick = () => renderMedications();
+      form.append(err, save, cancel);
+      edit.replaceWith(form);
+    };
+    card.append(refill, edit, remove);
     root.append(card);
   }
 }
