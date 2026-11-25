@@ -1,5 +1,6 @@
 
 import { getLocale } from "./i18n.ts";
+import { beep, speak, unlockAudio } from "./voice.ts";
 
 interface Detail { steps: [string, string][]; mistake: [string, string] }
 
@@ -85,14 +86,17 @@ export function renderRestTimer(host: HTMLElement, onAnother: () => void, setNo:
   const start = (sec: number): void => {
     stopRestTimer();
     let left = sec;
+    unlockAudio();
     clock.hidden = false; live.textContent = "";
     clock.textContent = String(left);
     timerId = window.setInterval(() => {
       left -= 1;
       clock.textContent = String(Math.max(0, left));
+      if (left > 0 && left <= 3) { if (!beep(660, 120)) speak(String(left), { interrupt: true }); }
       if (left <= 0) {
         stopRestTimer();
         live.textContent = tr("restDone");
+        if (!beep(990, 350)) speak(tr("restDone"), { interrupt: true });
         try { navigator.vibrate?.(200); } catch { /* مش كل الأجهزة بتدعم الاهتزاز */ }
       }
     }, 1000);
