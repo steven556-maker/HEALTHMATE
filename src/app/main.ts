@@ -8,6 +8,7 @@ import { createCounter } from "../core/repCounter.ts";
 import type { CounterEvent } from "../core/repCounter.ts";
 import { metricKeysFor } from "../core/formChecker.ts";
 import { createCueThrottle, sayCount } from "../core/cues.ts";
+import { renderExerciseDetails, renderRestTimer, nextSetNumber, stopRestTimer } from "./exercise-details.ts";
 import { EXERCISE_COPY, cueText, exerciseName } from "./exercise-copy.ts";
 import { $, showToast } from "./ui.ts";
 import { initReminders } from "./reminders.ts";
@@ -184,9 +185,13 @@ function renderIntro(ex: ExerciseDef): void {
   if (svg) art.append(svg);
   const notes = [needsSideView(ex) ? t("sideViewHint") : "", ex.durationSec ? t("timedHint", { seconds: ex.durationSec }) : ""].filter(Boolean);
   $("intro-notes").textContent = notes.join(" ");
+  let details = document.getElementById("intro-details");
+  if (!details) { details = document.createElement("div"); details.id = "intro-details"; details.className = "intro-details"; $("intro-notes").after(details); }
+  renderExerciseDetails(ex.id, details);
   $("intro-error").hidden = true;
 }
 function backToPicker(): void {
+  stopRestTimer();
   $("session").hidden = true;
   $("picker").hidden = false;
 }
@@ -616,6 +621,7 @@ function endSession(showSummary: boolean): void {
       chart.setAttribute("aria-label", t("traceCaption"));
       body.append(caption, chart);
     }
+    if (!s.pain) renderRestTimer(body, () => { $("summary").hidden = true; openIntro(s.def); }, nextSetNumber(s.def.id));
     $("summary").hidden = false;
     speak(s.pain ? t("painStopped") : t("finishedWorkout"));
   } else {
