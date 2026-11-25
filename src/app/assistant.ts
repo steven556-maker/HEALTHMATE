@@ -32,6 +32,7 @@ function initAssistant(): void {
     } catch { /* مش حرج */ }
   };
   $("btn-send-chat").onclick = () => void sendChat();
+  $("chat-input").addEventListener("keydown", (e) => { const k = e as KeyboardEvent; if (k.key === "Enter" && !k.shiftKey && !k.isComposing) { k.preventDefault(); void sendChat(); } });
   window.addEventListener("healthmate:locale", () => { void updateAssistantStatus(); renderChat(); });
   window.addEventListener("healthmate:navigate", (event) => { if ((event as CustomEvent<string>).detail === "assistant") void updateAssistantStatus(); });
   void updateAssistantStatus();
@@ -60,8 +61,25 @@ function chatHistory(): ChatItem[] {
 function saveChat(history: ChatItem[]): void {
   try { localStorage.setItem(CHAT_KEY, JSON.stringify(history.slice(-30))); } catch { /* المحادثة تفضل في الذاكرة للطلب ده */ }
 }
+const GREETING = {
+  hello: ["أهلًا بيك. أنا مساعد HEALTHMATE للتوعية الصحية العامة. اسألني عن التمرين أو النوم أو الأكل أو الالتزام بالأدوية.", "Hi. I am the HEALTHMATE assistant for general health awareness. Ask about exercise, sleep, food or sticking to medication."],
+  chips: [["إزاي أبدأ تمرين بسيط؟", "How do I start a simple workout?"], ["إزاي أنام أحسن؟", "How can I sleep better?"], ["إزاي أفتكر مواعيد الدوا؟", "How do I remember my medication times?"]],
+} as const;
+function renderGreeting(root: HTMLElement): void {
+  const en = getLocale() === "en" ? 1 : 0;
+  const box = document.createElement("div"); box.className = "chat-greeting";
+  const p = document.createElement("p"); p.textContent = GREETING.hello[en]; box.append(p);
+  const row = document.createElement("div"); row.className = "chat-chips";
+  for (const c of GREETING.chips) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chat-chip"; b.textContent = c[en];
+    b.onclick = () => { const f = $("chat-input") as HTMLTextAreaElement; if (f.disabled) return; f.value = c[en]; f.focus(); };
+    row.append(b);
+  }
+  box.append(row); root.append(box);
+}
 function renderChat(typing = false): void {
   const root = $("chat-log"); root.replaceChildren();
+  if (chatHistory().length === 0) renderGreeting(root);
   for (const item of chatHistory()) {
     const bubble = document.createElement("div"); bubble.className = "chat-message";
     const role = item.role === "user" ? t("you") : t("assistant");
