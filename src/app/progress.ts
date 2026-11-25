@@ -6,7 +6,7 @@ import { medicationSummary } from "./medications.ts";
 import { getLocale, t } from "./i18n.ts";
 import { exerciseName } from "./exercise-copy.ts";
 import { exportCsv, printReport } from "./report.ts";
-import { $, showToast } from "./ui.ts";
+import { $, showEmptyState, showToast } from "./ui.ts";
 import { BADGE_ORDER, activeDays, bestStreak, currentStreak, earnedBadges, weekProgress } from "../core/streaks.ts";
 import type { BadgeId } from "../core/streaks.ts";
 
@@ -171,7 +171,7 @@ function renderHistory(): void {
   const root = $("session-history");
   root.replaceChildren();
   const rows = store.getSessions().sort((a, b) => b.at - a.at).slice(0, 10);
-  if (!rows.length) { root.textContent = t("historyEmpty"); return; }
+  if (!rows.length) { showEmptyState(root, t("historyEmpty")); return; }
   const locale = getLocale() === "ar" ? "ar-EG" : "en-US";
   for (const row of rows) {
     const item = document.createElement("div"); item.className = "history-row";
