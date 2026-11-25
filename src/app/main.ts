@@ -135,7 +135,7 @@ function renderPicker(): void {
     const b = document.createElement("button");
     b.className = "exercise-card";
     const copy = EXERCISE_COPY[ex.id];
-    b.innerHTML = `<span class="exercise-card-art"></span><span class="exercise-copy"><b></b><small></small><span class="muscle-badge"></span></span><svg class="exercise-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`;
+    b.innerHTML = `<span class="exercise-card-art"></span><span class="exercise-copy"><b></b><small></small><span class="muscle-badge"></span></span><span class="exercise-start"><span data-start></span><svg class="exercise-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>`;
     const art = b.querySelector(".exercise-card-art")!;
     const photoNames: Record<string, string> = { squat: "squat", pushup: "pushup", plank: "plank", lunge: "lunge", glute_bridge: "glute-bridge", wall_sit: "wall-sit", sit_to_stand: "sit-to-stand" };
     const imageName = photoNames[ex.id];
@@ -145,6 +145,7 @@ function renderPicker(): void {
       img.src = `${import.meta.env.BASE_URL}images/exercises/${imageName}.webp`;
       img.alt = "";
       img.loading = "lazy";
+      img.addEventListener("load", () => img.classList.add("is-loaded"), { once: true });
       img.decoding = "async";
       art.append(img);
     } else {
@@ -161,6 +162,7 @@ function renderPicker(): void {
     b.querySelector("b")!.textContent = copy ? t(copy.name) : ex.id;
     b.querySelector("small")!.textContent = copy ? t(copy.hint) : "";
     b.querySelector(".muscle-badge")!.textContent = copy ? t(copy.muscle) : "";
+    b.querySelector("[data-start]")!.textContent = t("startCamera");
     b.onclick = () => openIntro(ex);
     cards.appendChild(b);
   }
@@ -636,6 +638,14 @@ initProgress({ backToPicker, startSession, endSession, activate, getSession: () 
 initMedications();
 initAssistant();
 initRoutine();
+let lastGlobalError = 0;
+const reportUnexpected = (): void => {
+  if (Date.now() - lastGlobalError < 5000) return;
+  lastGlobalError = Date.now();
+  showToast(t("unexpectedError"));
+};
+window.addEventListener("error", reportUnexpected);
+window.addEventListener("unhandledrejection", reportUnexpected);
 getExercise("squat"); // فحص مبكر إن التعريفات سليمة
 initParq();
 initBackup();
