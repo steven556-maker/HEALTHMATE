@@ -1,10 +1,4 @@
-// منطق الأدوية الصافي (بدون DOM). لا يقترح جرعات ولا يعدّلها: بيسجّل اللي كتبه المستخدم من الوصفة بس.
-//
-// القواعد:
-//  - الجرعة المجدولة هويتها `YYYY-MM-DD:HH:MM` (وقت الجدول، مش وقت الضغط).
-//  - المخزون مش رقم بيتخصم عليه؛ هو مشتق: مخزون_ابتدائي + التعبئات − عدد الجرعات "taken".
-//    كده تسجيل "تم" مرتين لنفس الجرعة بيخصم مرة واحدة، والتعبئة على جهاز ما بتضيعش عند الدمج.
-//  - كل تغيير فيه طابع زمني (logAt / updatedAt) عشان المزامنة تدمج على مستوى العنصر مش الملف كله.
+
 
 export type DoseStatus = "taken" | "missed" | "cleared";
 
@@ -107,6 +101,14 @@ export function toggleDoseStatus(med: Medication, key: string, status: "taken" |
 export function addStock(med: Medication, qty: number, id: string, now: number): Medication {
   if (!Number.isFinite(qty) || qty === 0) return med;
   return { ...med, adjustments: [...med.adjustments, { id, qty, at: now }] };
+}
+/** تعديل بيانات الدواء (الاسم/الجرعة/المواعيد). سجل الجرعات والمخزون بيفضلوا زي ما هم. بيرجّع نفس الدواء لو المدخلات مش صالحة. */
+export function editMedication(med: Medication, input: { name: string; dose: string; times: string }, now: number): Medication {
+  const name = input.name.trim().slice(0, 80);
+  const dose = input.dose.trim().slice(0, 100);
+  const times = parseTimes(input.times.trim());
+  if (!name || !dose || !times) return med;
+  return { ...med, name, dose, times: times.join(", "), updatedAt: now };
 }
 export function removeMedication(med: Medication, now: number): Medication {
   return { ...med, deleted: true, updatedAt: now };
