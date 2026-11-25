@@ -1,165 +1,398 @@
+<div align="center">
+
+<img src="web/healthmate-hero.svg" alt="HEALTHMATE" width="640" />
+
 # HEALTHMATE
 
-HEALTHMATE تطبيق ويب ثنائي اللغة (عربي RTL / إنجليزي LTR) لمتابعة تمارين منزلية باستخدام كاميرا الهاتف. تحليل الحركة محلي في المتصفح، وتبقى السجلات على الجهاز افتراضيًا؛ يمكن مزامنتها مع حساب Supabase بعد تفعيله وموافقة المستخدم.
+**Home workouts with real-time form guidance from your phone camera. Private by default, bilingual (Arabic RTL / English LTR), installable as a PWA.**
 
-## Submission overview (English)
+[![CI](https://github.com/steven556-maker/HEALTHMATE/actions/workflows/ci.yml/badge.svg)](https://github.com/steven556-maker/HEALTHMATE/actions/workflows/ci.yml)
+[![Deploy](https://github.com/steven556-maker/HEALTHMATE/actions/workflows/deploy.yml/badge.svg)](https://github.com/steven556-maker/HEALTHMATE/actions/workflows/deploy.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-optional-3ECF8E?logo=supabase&logoColor=white)
+![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)
+![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8)
 
-**HEALTHMATE** is a bilingual (Arabic RTL / English LTR) installable web app (PWA) for home exercise. It gives real-time **form and rep guidance** from the phone camera, spoken coaching cues, local progress tracking, and an optional account with opt-in cloud sync and an optional AI assistant.
+[English](#overview) | [العربية](#النسخة-العربية)
 
-### What it does
-
-- **7 camera-tracked exercises:** Squat, Push-up, Plank, Lunge, Glute bridge, Wall sit and Sit-to-stand (30 s chair-stand test). Each has a rep counter or hold timer plus form checks that produce plain-language corrections.
-- **Audio coaching:** 20 bundled recorded Arabic cues (MP3) and on-device `speechSynthesis` (English cues, and the fallback when an MP3 fails). Both go through one serial queue, so cues never overlap; a new cue can interrupt the current one; one global mute silences everything (`src/app/audio-coordinator.ts`, `src/app/voice.ts`).
-- **Progress and coaching:** weekly progress, sleep/stress/mood check-ins, a rules-based coach that always shows the reason for a suggestion, and a local medication organiser (it never suggests doses).
-- **Bilingual UI:** `src/locales/ar.json` and `en.json` (identical key sets, enforced by a test); `<html lang dir>` switches between `rtl` and `ltr`.
-- **Optional AI assistant:** Cloudflare Worker -> every free Gemini model in turn (instant failover on quota errors, exhausted models skipped for a short time) -> Groq -> static FAQ fallback (including an urgent-care message for serious symptoms). Transient failures are retried in up to 3 rounds across the model chain, the UI retries silently up to 3 times, and the last resort is a matching built-in reply, so users never see an error or a "fallback" label. The reply is always HTTP 200. Requires sign-in; per-IP and per-user daily limits.
-- **Optional account + sync:** Supabase Auth and one Postgres table protected by Row Level Security; explicit consent required before anything is uploaded.
-
-### Architecture
-
-```
-Browser (Vite + TypeScript, small React islands, PWA / service worker)
- |- MediaPipe Pose Landmarker (self-hosted under /vendor) -> src/core: angles, rep counter, form rules
- |- localStorage  (default, local-first store)
- |- Supabase (optional)  Auth + public.healthmate_user_data (RLS, anon revoked)
- '- Cloudflare Worker (optional)  POST /api/chat, GET /api/health, /push/*
-      |- verifies the user's Supabase token (/auth/v1/user), KV daily quota + rate-limit binding
-      '- Gemini (OpenAI-compatible endpoint) -> Groq -> static fallback
-Hosting: GitHub Pages at /HEALTHMATE/ via .github/workflows/deploy.yml
-```
-
-### Privacy (local-first, opt-in sync)
-
-- Pose analysis runs in the browser. **Camera frames and video are never uploaded or stored.**
-- Records stay in `localStorage` by default. Nothing is sent to Supabase unless the user signs in **and** consents to sync. Assistant chat history and camera data are excluded from sync. Sign-out does not delete cloud data; the in-app "delete my account and data" button does.
-- The assistant sends only the recent chat messages, plus (only with a separate consent switch) a small numeric summary: sessions in the last 7 days and today's sleep/stress/mood. Body weight is never sent. Provider API keys exist only as Worker secrets.
-- Third-party requests the app can make: Supabase (if configured), the assistant Worker (if configured), Google Fonts (Cairo/Inter), and, only if the self-hosted MediaPipe files are missing, a CDN fallback for the MediaPipe code/model.
-- Not a medical device: no diagnosis and no medication advice.
-
-### Quick verification (about 5 minutes, no accounts needed)
-
-```sh
-npm ci
-npm run typecheck && npm run lint && npm test   # static checks + unit/integration tests
-npm run build                                   # -> dist/, base path /HEALTHMATE/
-npm run preview                                 # http://localhost:4173/HEALTHMATE/
-```
-
-Camera access needs `localhost` or HTTPS. Without any `.env` the app runs fully local (sign-in and assistant show "not configured"). `npm run check:env` validates `.env` before a cloud-enabled build. Browser end-to-end tests (`npm run test:e2e`, after `npx playwright install chromium`) default to the deployed site; set `HEALTHMATE_BASE_URL` to test another URL.
-
-### Deploying it (GitHub Pages + optional Cloudflare Worker + Supabase)
-
-The exact one-time secrets, variables and dashboard steps are in **[docs/verify-cloud-and-assistant.md](docs/verify-cloud-and-assistant.md)** (section 0), together with smoke tests for each piece. The repository slug must be `HEALTHMATE` (the build base path is `/HEALTHMATE/`).
-
-### Known limitations
-
-- Web Push medication reminders are implemented in the Worker but are optional and **off in the default GitHub Pages build** (they need VAPID keys; see "Web Push" below).
-- The Google sign-in button is hidden unless the build sets `VITE_GOOGLE_AUTH=true`; `deploy.yml` does not set it, so the deployed app uses email + password.
-- Recorded voice cues are Arabic only. English (and Arabic when no MP3 is available) uses the device's speech voice, and some devices have no Arabic voice, in which case the cue is shown as text.
-- Pose accuracy has not been clinically validated; side-on filming is recommended.
+</div>
 
 ---
 
-## التشغيل محليًا
+## Table of contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Usage notes](#usage-notes)
+- [Technology stack](#technology-stack)
+- [Architecture](#architecture)
+- [Getting started](#getting-started)
+- [Available scripts](#available-scripts)
+- [Project structure](#project-structure)
+- [Configuration](#configuration)
+- [Deployment](#deployment)
+- [Privacy and security](#privacy-and-security)
+- [Testing](#testing-and-quality-checks)
+- [Known limitations](#known-limitations)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [النسخة العربية](#النسخة-العربية)
+
+---
+
+## Overview
+
+HEALTHMATE helps users follow guided home workouts and monitor their activity. Exercise-pose analysis runs in the browser, while user records are stored locally by default. Optional account and cloud-sync features are available when configured and enabled by the user.
+
+## Features
+
+- **Camera-guided workouts:** 7 supported exercises — squat, push-up, plank, lunge, glute bridge, wall sit, and sit-to-stand (30-second chair-stand test).
+- **Live exercise feedback:** repetition counting or hold timers, with form checks and plain-language corrections.
+- **Audio coaching:** 20 bundled recorded Arabic cues (MP3), device speech synthesis for English, and a fallback when an audio file is unavailable. A shared queue prevents overlapping prompts; a global mute control is provided.
+- **Progress tracking:** weekly activity dashboard and sleep, stress, and mood check-ins.
+- **Rules-based coaching:** suggestions include the reason behind each recommendation.
+- **Medication organiser:** local-only stock and adherence tracking. It does not recommend medication or doses.
+- **Arabic and English:** right-to-left Arabic and left-to-right English layouts, with matching translation keys checked by a test.
+- **Installable PWA:** offline-capable generated service worker, light and dark themes, and optional Web Push reminders.
+- **Optional cloud account and sync:** Supabase Auth and Postgres with Row Level Security, explicit consent before upload, and per-item merging across devices (a `version` column prevents silent overwrites).
+- **Optional AI assistant:** Cloudflare Worker proxy with Gemini model failover, then Groq, then a static FAQ fallback. Requires sign-in. Serious-symptom messages direct users toward urgent care.
+
+---
+
+## Usage notes
+
+The app is designed for mobile and switches language and text direction (Arabic RTL / English LTR). For the most reliable pose tracking, film exercises from a side-on angle with the full movement visible.
+
+---
+
+## Technology stack
+
+| Area | Technology |
+| --- | --- |
+| Application | TypeScript 5.7, Vite 6, vanilla TS core with React 19 islands, Tailwind CSS 4, lucide-react |
+| Pose estimation | MediaPipe Tasks Vision 0.10.14 |
+| PWA | vite-plugin-pwa |
+| Local storage | Browser `localStorage` |
+| Optional backend | Supabase Auth, Postgres, Row Level Security |
+| Optional server functions | Cloudflare Workers and KV |
+| Optional AI assistant | Gemini, Groq, static fallback |
+| Quality checks | ESLint 9, `node --test` with `tsx`, Playwright |
+| CI/CD | GitHub Actions, GitHub Pages |
+
+## Architecture
+
+```text
+Browser
+  ├─ Vite + TypeScript application, with isolated React UI islands
+  ├─ MediaPipe Pose Landmarker
+  │    └─ Joint angles, repetition counting, and exercise-form rules
+  ├─ localStorage (default local-first data store)
+  ├─ Supabase (optional)
+  │    └─ Authentication and user data protected by RLS
+  └─ Cloudflare Worker (optional)
+       ├─ POST /api/chat
+       ├─ GET /api/health and /push/*
+       ├─ Supabase-token verification, KV quota, and rate limiting
+       └─ Gemini model failover → Groq → static fallback
+
+Deployment: GitHub Pages at /HEALTHMATE/
+```
+
+### Architecture notes
+
+- `src/` is the source of truth. `vite build` generates `dist/`.
+- TypeScript checking uses `tsc --noEmit`; it does not emit build files.
+- The core camera and exercise pipeline is implemented in vanilla TypeScript. React is used for isolated UI areas such as charts, navigation, and the progress dashboard.
+- The service worker is generated by `vite-plugin-pwa` and loads `web/notify-sw.js`.
+- Cross-device sync merges records by `id`, `updatedAt`, and tombstones in `src/core/merge.ts`.
+- Sync is merge-based, not overwrite: records merge by `id`, `updatedAt` and tombstones, and the database uses a `version` column for compare-and-set.
+- Assistant resilience: quota errors (429/404) skip to the next model instantly; transient errors (5xx, timeout, network) retry in up to 3 rounds; the UI retries silently before showing a built-in reply.
+- MediaPipe assets are self-hosted in `web/vendor`. If they are unavailable, the application falls back to the matching CDN version (0.10.14).
+
+---
+
+## Getting started
+
+### Requirements
+
+- Node.js 22 (the version used in CI) and npm
+- A browser with camera access
+
+Camera access requires `localhost` during development or HTTPS when deployed.
+
+### Install dependencies
+
+```bash
+git clone https://github.com/steven556-maker/HEALTHMATE.git
+cd HEALTHMATE
+npm ci
+```
+
+### Start the development server
+
+```bash
+npm run dev
+```
+
+The application runs locally without environment variables. Account and assistant features display as not configured until their corresponding services are set up.
+
+### Build and preview
+
+The production build uses the `/HEALTHMATE/` base path.
+
+```bash
+npm run build
+npm run preview
+```
+
+The preview server is expected at:
+
+```text
+http://localhost:4173/HEALTHMATE/
+```
+
+---
+
+## Available scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite development server (runs the vendor preparation step first) |
+| `npm run serve` | Run the local serving script |
+| `npm run build` | Type-check and build the application into `dist/` |
+| `npm run preview` | Preview the production build |
+| `npm run typecheck` | Run TypeScript checking with `tsc --noEmit` |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run unit and integration tests |
+| `npm run test:e2e` | Run Playwright end-to-end tests (`test:e2e:headed` for a visible browser) |
+| `npm run vendor` | Copy MediaPipe WASM files to `web/vendor` and fetch the model |
+| `npm run check:env` | Validate environment configuration before a cloud-enabled build |
+| `npm run dev:worker` | Run the Cloudflare Worker locally on port 8787 |
+
+---
+
+## Project structure
+
+```text
+.
+├── src/
+│   ├── core/          pure logic: angles, exercises, rep counter, form rules, coach,
+│   │                  analytics, merge/sync, medications, backup
+│   ├── app/           UI modules, storage, audio, i18n, assistant, cloud sync, push
+│   ├── components/ui/ React islands (progress dashboard, sign-in)
+│   ├── locales/       ar.json, en.json
+│   └── styles/
+├── web/               static assets: audio cues, images, icons, manifest, notify-sw.js, styles
+├── worker/            assistant Worker (chat, model chain, retry, fallback, push)
+├── supabase/          schema.sql (table, RLS, version column, delete_my_account())
+├── scripts/           vendor-mediapipe, check-build-env, gen-vapid
+├── tests/             unit/integration tests and tests/e2e
+├── docs/              verification, preview deployment, feasibility notes
+└── .github/workflows/ ci.yml, deploy.yml, preview.yml
+```
+
+## Configuration
+
+Cloud features are optional. To configure them, copy `.env.example` to `.env` and provide the relevant values.
+
+| Variable | Used in | Purpose |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Build/client | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Build/client | Supabase publishable/anonymous key; access must be protected by RLS |
+| `VITE_ASSISTANT_URL` | Build/client | Deployed assistant Worker URL |
+| `VITE_PUSH_PUBLIC_KEY` | Build/client | Optional Web Push public key |
+| `VITE_GOOGLE_AUTH` | Build/client | Set to `true` to show Google sign-in |
+
+### Worker secrets and variables
+
+| Name | Purpose |
+| --- | --- |
+| `GEMINI_API_KEY` | Primary AI provider (secret) |
+| `GROQ_API_KEY` | Optional second provider (secret) |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Used to verify user tokens |
+| `ALLOWED_ORIGIN` | Allowed browser origins (CORS) |
+| `GEMINI_MODELS` | Ordered model chain |
+| `RATE_KV` | KV namespace for the per-user daily quota |
+| `VAPID_PRIVATE_JWK` | Optional Web Push private key |
+
+### Server-side secrets
+
+Configure provider secrets on the Worker using Wrangler, for example:
+
+```bash
+wrangler secret put GEMINI_API_KEY
+```
+
+For local Worker development, copy `worker/.dev.vars.example` to `worker/.dev.vars`, then run `npm run dev:worker` (port 8787) next to `npm run dev`.
+
+**Never** place provider API keys or a Supabase `service_role` key in client-side code or in `VITE_` variables. Do not commit real secrets to the repository.
+
+---
+
+## Optional Supabase setup
+
+1. Create a Supabase project.
+2. Run `supabase/schema.sql` in the Supabase SQL Editor.
+3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in your environment.
+4. Under Authentication > URL Configuration, set the Site URL to your deployed URL and add it to Redirect URLs, then run `npm run check:env`.
+
+Full steps, including Google sign-in: [`docs/verify-cloud-and-assistant.md`](docs/verify-cloud-and-assistant.md).
+
+Cloud sync is not enabled merely by adding configuration: users must sign in and provide consent before their data is uploaded.
+
+---
+
+## Deployment
+
+### GitHub Pages
+
+- The workflow at `.github/workflows/deploy.yml` publishes `dist/` when changes are pushed to `main`.
+- Configure the GitHub Actions secrets `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` when using Supabase.
+- Configure the Actions variable `VITE_ASSISTANT_URL` when using the assistant.
+- Keep the repository name `HEALTHMATE`, because the published site uses the `/HEALTHMATE/` base path.
+
+### Optional Cloudflare Worker
+
+1. Create a KV namespace named `RATE_KV`.
+2. Configure the required Cloudflare and provider secrets.
+3. Deploy manually, or through CI as described below:
+
+```bash
+npx wrangler deploy --config worker/wrangler.toml
+```
+
+To deploy the Worker through CI, set the variables `RATE_KV_NAMESPACE_ID`, `CLOUDFLARE_ACCOUNT_ID` and `DEPLOY_WORKER=true`, and the secrets `CLOUDFLARE_API_TOKEN` and `GEMINI_API_KEY`. After the first deploy, set `VITE_ASSISTANT_URL` to the Worker URL and rebuild Pages. Pull request previews are described in [`docs/preview-deployment.md`](docs/preview-deployment.md).
+
+For deployment checks and verification steps, see [`docs/verify-cloud-and-assistant.md`](docs/verify-cloud-and-assistant.md).
+
+---
+
+## Privacy and security
+
+- **Camera processing:** pose analysis runs in the browser. Camera frames and video are not uploaded or stored by the pose-analysis feature.
+- **Default storage:** records are stored in browser `localStorage` by default.
+- **Optional cloud sync:** data is sent to Supabase only after the user signs in and consents to sync.
+- **Excluded from sync:** chat history and camera data are not synced.
+- **Assistant context:** the assistant receives only recent chat messages (the last 20, up to 2000 characters each). A separate consent switch is required before it receives a limited numeric summary (sessions in the last 7 days and today's sleep, stress, and mood). Body weight is not sent.
+- **Third-party requests:** depending on enabled features and asset availability, the app may contact Supabase, the assistant Worker, Google Fonts, and the MediaPipe CDN fallback.
+- **Worker protection:** the Worker requires a valid signed-in user and applies per-IP and per-user daily limits.
+- **Database:** Row Level Security applies to every operation, `anon` has no access, and rows are capped at 2 MB.
+- **Account deletion:** the in-app “delete my account and data” action removes cloud data. Signing out alone does not delete it.
+
+Review the deployed configuration and privacy notices before using the application with real user data.
+
+---
+
+## Testing and quality checks
+
+Run the main checks with:
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+```
+
+Unit and integration tests cover angle math, rep counting, exercise rules, the coach, analytics, merge and sync, medications, the assistant model chain and retry logic, the Worker, audio coordination, push, and locale key parity.
+
+Run browser end-to-end tests with:
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+End-to-end tests target the deployed site by default. Set `HEALTHMATE_BASE_URL` to test a different URL.
+
+---
+
+## Known limitations
+
+- Web Push medication reminders are implemented in the Worker but are disabled in the default GitHub Pages build; they require VAPID keys.
+- Bundled recorded voice cues are Arabic only. Other cases use the device's speech synthesis. Some devices may not provide an Arabic voice, in which case the cue is shown as text.
+- Google sign-in is hidden unless `VITE_GOOGLE_AUTH=true`. The deployed application uses email and password by default.
+- Side-on camera positioning generally provides the best pose-tracking results.
+- Exercise-pose accuracy has not been clinically validated.
+
+---
+
+## Roadmap
+
+Items below are not implemented yet (checked against the current code).
+
+- [ ] Workout reminders, missed-session alerts and a weekly summary notification (current push reminders cover medications only)
+- [ ] Web Push enabled in the default GitHub Pages build (needs VAPID keys)
+- [ ] Recorded English voice cues
+- [ ] PNG app icons and a splash screen (the manifest uses an SVG icon only)
+- [ ] Standalone privacy policy and terms pages
+- [ ] Landing page and a step-by-step user guide in Arabic and English
+- [ ] Documented device test matrix (iPhone and Android, lighting, body sizes, offline)
+- [ ] A `LICENSE` file
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repository and create a branch: `git checkout -b feat/my-change`.
+2. Make your change and keep `src/locales/ar.json` and `en.json` in sync.
+3. Run `npm run typecheck && npm run lint && npm test`.
+4. Open a pull request describing the change and how you tested it.
+
+Do not commit secrets or API keys. Report security issues privately to the maintainer rather than in a public issue.
+
+## License
+
+No license file is currently included, so all rights are reserved by default. Add a `LICENSE` file (for example MIT) to define the terms.
+
+---
+
+<div dir="rtl">
+
+## النسخة العربية
+
+**HEALTHMATE** تطبيق ويب ثنائي اللغة (عربي RTL / إنجليزي LTR) قابل للتثبيت لمتابعة التمارين المنزلية بكاميرا الهاتف. يعدّ التكرارات ويقيس زمن الثبات ويعطي تصحيحات للوضعية مع تنبيهات صوتية.
+
+### المميزات
+
+- 7 تمارين بتتبع الكاميرا: سكوات، ضغط، بلانك، لانج، جسر الأرداف، جلوس على الحائط، وقوف من الكرسي.
+- تنبيهات صوتية: 20 تسجيلًا عربيًا مرفقًا، وصوت الجهاز للإنجليزية وكاحتياط.
+- تقدم أسبوعي، متابعة النوم والتوتر والمزاج، ومدرب قائم على قواعد يوضح سبب كل اقتراح.
+- منظم أدوية محلي، لا يقترح جرعات أبدًا.
+- مساعد اختياري عبر Cloudflare Worker: Gemini ثم Groq ثم ردود ثابتة.
+- حساب ومزامنة اختياريان عبر Supabase مع سياسات RLS.
+- يعمل كـ PWA ويدعم الوضعين الفاتح والداكن.
+
+### التشغيل محليًا
 
 ```sh
 npm ci
 npm run dev
 ```
 
-يضبط Vite مسار النشر على `/HEALTHMATE/` لمستودع GitHub Pages. ينشر ملف `.github/workflows/deploy.yml` نسخة `dist/` تلقائيًا عند التحديث على فرع `main`.
+الكاميرا تحتاج `localhost` أو HTTPS. بدون ملف `.env` يعمل التطبيق محليًا بالكامل. لإنشاء نسخة النشر: `npm run build`، ثم `npm run preview` للمعاينة.
 
-لإنشاء نسخة النشر شغّل `npm run build`. يمكن معاينة `dist/` باستخدام `npm run preview`. الكاميرا تحتاج `localhost` أو HTTPS.
+### إعداد Supabase (اختياري)
 
-## المميزات
+1. أنشئ مشروعًا في Supabase وشغّل `supabase/schema.sql` في SQL Editor.
+2. انسخ `.env.example` إلى `.env` وضع `VITE_SUPABASE_URL` و`VITE_SUPABASE_ANON_KEY`.
+3. اضبط Site URL وRedirect URLs من إعدادات Authentication.
+4. شغّل `npm run check:env` ثم أعد تشغيل التطبيق.
 
-- رسوم توضيحية لكل تمرين، ومكتبة لتشغيل 20 تسجيلًا صوتيًا مرفقًا.
-- تمارين منزلية مع قياس الوضعية والتنبيهات الصوتية.
-- منظم أدوية محلي مع متابعة المخزون والالتزام.
-- تقدم أسبوعي ومدرب قواعد يوضح سبب كل اقتراح.
-- مساعد اختياري يعمل عبر Cloudflare Worker: Gemini أولًا، ثم Groq، ثم ردود احتياطية ثابتة. مفاتيح المزوّد محفوظة سرًا في الخادم.
-- واجهة عربية وإنجليزية مع اتجاه RTL/LTR، ودعم PWA.
-- دخول وإنشاء حساب اختياريان، مع مزامنة سجلات محمية بسياسات RLS.
+لا تضع مفتاح `service_role` في الواجهة. التفاصيل الكاملة في `docs/verify-cloud-and-assistant.md`.
 
-## تنظيم الملفات
+### الخصوصية
 
-- `src/core/`: حساب الزوايا، تعريفات التمارين، العدّ، وقواعد المدرب.
-- `src/app/`: وحدات الواجهة والتخزين والصوت.
-- `src/components/ui/`: مكوّنات React للمخطط ولوحة التقدم الصحية.
-- `src/locales/` و`src/app/i18n.ts`: قاموسا العربية والإنجليزية ومنطق تبديل اللغة.
-- `web/styles/`: نظام التصميم. `tokens.css` فيه كل الألوان والمسافات (فاتح وداكن بتعريف واحد عبر `light-dark()`)، و`base.css` للأساسيات، و`components.css` و`screens.css` و`account.css` و`print.css` للمكوّنات والشاشات.
-- `worker/`: وسيط المساعد الاختياري.
+- تحليل الحركة يتم داخل المتصفح، ولا تُرفع صور الكاميرا أو الفيديو أبدًا.
+- السجلات تبقى على جهازك افتراضيًا، ولا تُرفع إلا بعد تسجيل الدخول والموافقة على المزامنة.
+- مفاتيح المزوّد (Gemini وGroq) محفوظة كأسرار في الـ Worker فقط.
+- زر «احذف حسابي وبياناتي» يحذف الحساب وبياناته من السحابة.
 
-الواجهة الأساسية ما زالت Vanilla TypeScript. أضفنا React كجزر مستقلة للمخطط والتنقل ولوحة التقدم حتى تظل معالجة الكاميرا الحالية مستقرة. إعداد React وTailwind موجود في Vite، ومجلد `src/components/ui/` هو مكان مكوّنات العرض المشتركة على نمط shadcn.
+### تنبيه
 
-لوحة التقدم تستخدم جلسات المستخدم وإدخالات النوم والالتزام المسجل بالأدوية، وتعرض التكرارات ودقة الوضعية والنوم وأرقام الالتزام.
+التطبيق للتوعية والمتابعة فقط، وليس بديلًا للطبيب أو العلاج الطبيعي، ولا يقدم تشخيصًا أو توصيات دوائية.
 
-## تشغيل المساعد
-
-المساعد يستخدم Gemini عبر سلسلة `GEMINI_MODELS` (الافتراضي: كل موديلات Gemini المجانية، من الأقوى للأخف؛ الحصص المجانية تتغير من Google بدون إعلان، وأي موديل غير متاح يتخطاه الكود تلقائيًا)، ثم Groq عند ضبط `GROQ_API_KEY`، ثم الردود الثابتة. اضبط `GEMINI_API_KEY` كسر في Cloudflare Worker (و`GROQ_API_KEY` اختياري)، ثم مرر عنوان الـ Worker في `VITE_ASSISTANT_URL` وقت بناء الواجهة. لا تضع مفاتيح المزوّد في ملفات الواجهة أو متغيرات `VITE_`.
-
-## إعداد قاعدة البيانات (Supabase)
-
-تعمل البيانات محليًا افتراضيًا. لتفعيل الحسابات والمزامنة:
-
-1. أنشئ مشروعًا مجانيًا في Supabase، ثم افتح **SQL Editor** وشغّل `supabase/schema.sql`.
-2. انسخ `.env.example` إلى `.env`، ثم ضع **Project URL** ومفتاح **publishable/anon** من إعدادات المشروع في `VITE_SUPABASE_URL` و`VITE_SUPABASE_ANON_KEY`.
-3. أعد تشغيل `npm run dev`. افتح الإعدادات، أنشئ حسابًا بالبريد وكلمة مرور، وأكّد البريد إذا طلب Supabase ذلك.
-4. زر الحساب في الشريط العلوي يفتح تسجيل الدخول أو إنشاء الحساب. أكّد بريدك إذا طُلب ذلك، ثم وافق على المزامنة واضغط «مزامنة بياناتي». ستُدمج السجلات المحلية مع سجلات الحساب؛ في السجلات المتعارضة تكون بيانات يوم المتابعة المحلية هي الأحدث، ويُستخدم أقل رصيد دواء لتجنب إظهار كمية أعلى من الحقيقية.
-
-لتفعيل Google، أضف Google من **Authentication → Sign In / Providers** في Supabase واضبط رابط إعادة التوجيه إلى عنوان الموقع. روابط تأكيد البريد واستعادة كلمة المرور تحتاج إعداد URL الموقع ومزوّد البريد في إعدادات Auth. **مهم:** من **Authentication → URL Configuration** اضبط Site URL على `https://<user>.github.io/HEALTHMATE/` (بدل localhost الافتراضي) وأضف في Redirect URLs النمطين `https://<user>.github.io/HEALTHMATE/**` و`http://localhost:5173/HEALTHMATE/**`. للتحقق من الإعداد قبل النشر: `npm run check:env`. خطوات التحقق الكاملة: `docs/verify-cloud-and-assistant.md`. نموذج تسجيل الدخول يعمل بالبريد وكلمة المرور دون إعداد Google.
-
-لا تضع مفتاح `service_role` في الواجهة أو ملف `.env` الخاص بـ Vite. المفتاح العام مناسب للواجهة لأن سياسات RLS في `schema.sql` تقصر كل صف على صاحبه. لا تُرفع بيانات الصحة قبل تسجيل الدخول والموافقة على المزامنة. صور الكاميرا والفيديو وسجل محادثة المساعد مستثناة من المزامنة. تسجيل الخروج لا يحذف البيانات من الجهاز ولا من قاعدة Supabase، ويطلب تأكيدًا قبل التنفيذ، وزر «شوف تقدّمي» يغلق النافذة ويفتح تبويب التقدّم. الموافقة على المزامنة تُحفظ لكل حساب، فعند تسجيل الدخول مرة أخرى بنفس الحساب تعود المزامنة تلقائيًا. إن كان الجهاز مربوطًا بحساب مختلف (مثلًا Google بدل الإيميل) تظهر للمستخدم خياران: تحميل بيانات الحساب الحالي من السحابة، أو دمج بيانات الجهاز فيه.
-
-التطبيق للتوعية والمتابعة فقط، وليس بديلًا للطبيب أو العلاج الطبيعي. لا يقدم توصيات جرعات أو تعديل أدوية.
-
-
-## بنية المشروع ومصدر الحقيقة
-
-- **`src/`** (TypeScript) هو المصدر الوحيد. `vite build` بيطلّع `dist/`، و`tsc` للفحص فقط (`noEmit`). مفيش `web/js` ولا `web/index.html` ولا `sw.js` يدوي: الـ service worker بيتولّد من `vite-plugin-pwa` وبيحمّل `web/notify-sw.js` (نقر الإشعار + استقبال push).
-- **الترجمة**: `src/locales/ar.json` و`en.json` فقط، وفي اختبار بيتأكد إن المفاتيح متطابقة.
-- **MediaPipe offline**: `npm run vendor` (بيتشغّل تلقائيًا قبل dev/build) بينسخ ملفات wasm للمجلد `web/vendor` وينزّل الموديل. لو فشل، التطبيق بيرجع للـ CDN بنفس الإصدار (0.10.14).
-
-## أوامر
-
-```
-npm install
-npm run typecheck   # tsc --noEmit
-npm test            # اختبارات النواة والمزامنة والأدوية وWorker والواجهة
-npm run build
-```
-
-## Supabase
-
-شغّل `supabase/schema.sql` كاملًا في SQL Editor (آمن لإعادة التشغيل). بيضيف عمود `version` للتحكم في تعارض الأجهزة ودالة `delete_my_account()` لزرار "احذف حسابي وبياناتي". الدمج بين الأجهزة على مستوى العنصر (id + updatedAt + tombstone) في `src/core/merge.ts`.
-
-## الـ Worker (المساعد)
-
-```
-cp worker/.dev.vars.example worker/.dev.vars
-# أضف GEMINI_API_KEY في worker/.dev.vars، و GROQ_API_KEY اختياري
-npm run dev:worker
-# في نافذة أخرى: npm run dev
-```
-
-أضف مفاتيح الإنتاج باستخدام `npx wrangler secret put GEMINI_API_KEY --config worker/wrangler.toml` و(اختياريًا) `npx wrangler secret put GROQ_API_KEY --config worker/wrangler.toml`، ثم `npx wrangler deploy --config worker/wrangler.toml` (يُشغَّل من جذر المستودع؛ ملف الإعداد داخل `worker/`). المزوّد الأساسي Gemini يجرب `GEMINI_MODELS` بالتتابع، ثم Groq، ثم ردود `worker/src/fallback.js`. عند خطأ 429 (الحصة خلصت) أو 404 ينتقل الـ Worker فورًا للموديل التالي من غير انتظار (لكل موديل حصة مجانية مستقلة)، ويتذكّر الموديلات المستنفدة في ذاكرته لفترة قصيرة (من 5 ثوانٍ حتى 30 دقيقة حسب نوع الحد) فيتخطاها في الطلبات التالية بلا اتصال. أخطاء الخادم المؤقتة (5xx أو timeout أو شبكة) تُعاد مرة على نفس الموديل بانتظار أقل من 0.3 ثانية، ثم يرجع الـ Worker لهذه الموديلات في جولة ثانية وثالثة (بوقفة قصيرة) قبل أن ينتقل إلى Groq أو الرد الثابت. موديلات 429/400/404 لا تُعاد لأن إعادتها بلا فائدة. مهلة 10 ثوانٍ لكل طلب وميزانية كلية 25 ثانية (أقل من مهلة الواجهة 35 ثانية). لو خلصت كل الموديلات (وGroq غير مضبوط) يرجع رد ثابت بحالة 200 وليس خطأ، والواجهة نفسها تعيد محاولة انقطاع الشبكة 3 مرات سريعة قبل أي رسالة. لا يكتب الـ Worker على KV لتذكّر الموديل الناجح، توفيرًا لحد الكتابة اليومي في الخطة المجانية. آخر موديل Gemini ناجح يُحفظ في KV عشر دقائق. مسار الدردشة `POST /api/chat`؛ يتطلب تسجيل الدخول، ويقبل آخر 20 رسالة حتى 2000 حرف لكل رسالة، مع حد 10 طلبات/دقيقة لكل عنوان IP من Cloudflare Rate Limiting، إضافة إلى حد يومي لكل مستخدم. الواجهة لا تُظهر أي رسالة فشل ولا وسم «رد تلقائي»: تعيد المحاولة بصمت حتى 3 مرات، وإن فشلت كلها تعرض ردًا ثابتًا مناسبًا للسؤال من `worker/src/fallback.js` (نفس الملف تستخدمه الواجهة بدون اتصال). الاستثناءان الوحيدان: «سجّل الدخول» و«وصلت للحد اليومي». مفاتيح المزوّد في Worker فقط؛ لا تضعها في متغيرات `VITE_`.
-
-في نشر GitHub Pages أضف GitHub Actions secrets باسم `VITE_SUPABASE_URL` و`VITE_SUPABASE_ANON_KEY`، وGitHub Actions variable باسم `VITE_ASSISTANT_URL` (عنوان Worker المنشور). لا تُضمّن قيمًا حقيقية في ملفات المصدر.
-
-لنشر Worker تلقائيًا مع GitHub Actions، أنشئ Cloudflare KV namespace باسم `RATE_KV` وخزّن معرّفه في Actions variable باسم `RATE_KV_NAMESPACE_ID`. أضف secrets `CLOUDFLARE_API_TOKEN` (صلاحية Workers Scripts وKV)، `GEMINI_API_KEY`، `VITE_SUPABASE_URL`، `VITE_SUPABASE_ANON_KEY`، و`GROQ_API_KEY` اختياريًا، وأضف variable `CLOUDFLARE_ACCOUNT_ID`. فعّل النشر بإضافة Actions variable `DEPLOY_WORKER=true`. سير العمل يحقن معرّف KV وقت النشر فقط ولا يكتبه إلى المستودع. بعد أول نشر حدّث Actions variable `VITE_ASSISTANT_URL` إلى عنوان Worker، ثم أعد تشغيل بناء Pages حتى تتصل الواجهة به. بديلًا عن CI: أنشئ KV باستخدام `npx wrangler kv namespace create RATE_KV`، ضع المعرّف في `worker/wrangler.toml` بدل `__RATE_KV_NAMESPACE_ID__`، ثم اضبط `GEMINI_API_KEY` و`SUPABASE_URL` و`SUPABASE_ANON_KEY` و`GROQ_API_KEY` الاختياري بأوامر `npx wrangler secret put ... --config worker/wrangler.toml` بعد `npx wrangler deploy --config worker/wrangler.toml`.
-
-تشغيل Pages وحده لا ينشر Worker. يلزم حساب Cloudflare وصلاحية API token ومعرّف KV حقيقي. لتعديل الإجابات المؤقتة عدّل الأسئلة والكلمات في `worker/src/fallback.js`.
-
-## قيود معروفة
-
-- تذكير الأدوية والتطبيق مقفول يعتمد على Web Push: الـ Worker (cron + `/push/*`) والـ service worker جاهزين، لكنه اختياري ومعطّل افتراضيًا في نشر GitHub Pages لأنه يحتاج مفاتيح VAPID (`VAPID_PUBLIC_KEY` في `wrangler.toml` و`VAPID_PRIVATE_JWK` كسر و`VITE_PUSH_PUBLIC_KEY` وقت البناء). `deploy.yml` لا يمرّر هذه القيم؛ راجع قسم Web Push أدناه.
-- التخزين لسه localStorage (مش IndexedDB/Dexie)، والمزامنة صف JSON واحد لكل مستخدم مع تحكم تفاؤلي بالنسخة.
-
-## Web Push (تذكير الدواء والتطبيق مقفول)
-1. `node scripts/gen-vapid.mjs` يولّد المفتاحين.
-2. المفتاح العام: `VAPID_PUBLIC_KEY` في `worker/wrangler.toml` و`VITE_PUSH_PUBLIC_KEY` في `.env`. الخاص: `npx wrangler secret put VAPID_PRIVATE_JWK --config worker/wrangler.toml`. (استبدل أيضًا قيمتي `VAPID_PUBLIC_KEY` و`VAPID_SUBJECT` النائبتين في `wrangler.toml`.)
-3. `npx wrangler deploy --config worker/wrangler.toml` (الـ cron كل 5 دقايق موجود في `wrangler.toml`).
-4. المستخدم يسجّل دخول ثم يضغط "تفعيل التذكير والتطبيق مقفول" في تبويب الأدوية.
-
-الخصوصية: السيرفر بيخزّن اشتراك المتصفح + المواعيد (HH:MM) + المنطقة الزمنية فقط. أسماء الأدوية بتفضل على الجهاز والـ service worker هو اللي بيبني نص الإشعار. الاشتراكات بتنتهي بعد 40 يوم من غير فتح التطبيق.
-حدود: التأخير لحد 5 دقايق (للدقة غيّر الـ cron لكل دقيقة، ده بيحتاج Workers Paid)، وحد أقصى ~40 إشعار في كل تشغيل، و5 أجهزة لكل مستخدم. iOS بيدعم Web Push بس للتطبيق المثبّت على الشاشة الرئيسية (iOS 16.4+).
+</div>
