@@ -1,6 +1,4 @@
-<div align="center">
-
-<img src="web/healthmate-hero.svg" alt="HEALTHMATE" width="640" />
+<p align="center"><img src="docs/banner.png" alt="HEALTHMATE" width="100%"></p>
 
 # HEALTHMATE
 
