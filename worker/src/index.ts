@@ -30,8 +30,15 @@ interface Env {
 
 /** موديلات استنفدت حصتها مؤخرًا. في ذاكرة الـ isolate (من غير كتابة على KV المحدود في الخطة المجانية). */
 const cooldowns = new Cooldowns();
-const SYSTEM_AR = "أنت مساعد داخل تطبيق HEALTHMATE، مهمتك تقديم توعية صحية عامة ومساعدة المستخدم على التمارين والسجلات الصحية. رد باختصار وبالعربي، ولو السؤال خارج نطاق التطبيق قل إنك مش متخصص فيه. لا تشخّص ولا تقترح جرعات أو تعديل أو إيقاف دواء. إذا ذكر المستخدم ألم صدر أو ضيق نفس أو دوخة شديدة، وجّهه لطلب مساعدة طبية عاجلة. التطبيق لا يستبدل الطبيب.";
-const SYSTEM_EN = "You are an assistant in HEALTHMATE, a home exercise and health tracking app. Briefly answer in English. If a question is outside the app's scope, say you are not a specialist in it. Provide general health awareness only: do not diagnose, recommend medication doses, or suggest changing or stopping medication. Direct chest pain, shortness of breath, or severe dizziness to urgent medical care. This app does not replace a clinician.";
+const SAFETY_AR = "لا تشخّص ولا تقترح جرعات أو تعديل أو إيقاف دواء. إذا ذكر المستخدم ألم صدر أو ضيق نفس أو دوخة شديدة، وجّهه لطلب مساعدة طبية عاجلة. التطبيق لا يستبدل الطبيب.";
+const STYLE_AR = "رد بنفس لغة آخر رسالة من المستخدم. لو كتب بالعربي رد بالعامية المصرية البسيطة وباختصار. اكتب نص عادي بدون أي تنسيق Markdown (من غير نجوم أو # أو جداول)، واستخدم سطور قصيرة أو شرطة عادية للنقاط. لما يسأل عن أكل أو زيادة وزن أو تنشيف، اقترح أكلات مصرية متاحة (فول، طعمية، بيض، فراخ، لحمة، سمك، كشري، رز، مكرونة، عدس، جبنة قريش، زبادي، لبن، بطاطا، فاكهة، مكسرات) بكميات تقريبية، وقل إن ده إرشاد عام ومش بديل لأخصائي تغذية.";
+const SYSTEM_AR = `أنت مساعد داخل تطبيق HEALTHMATE، مهمتك تقديم توعية صحية عامة ومساعدة المستخدم على التمارين والسجلات الصحية والتغذية العامة. ولو السؤال خارج نطاق التطبيق قل إنك مش متخصص فيه. ${SAFETY_AR} ${STYLE_AR}`;
+const SYSTEM_EN = "You are an assistant in HEALTHMATE, a home exercise and health tracking app. Reply in the same language as the user's latest message (if it is Arabic, reply in simple Egyptian Arabic). Be brief. Use plain text only, no Markdown (no asterisks, headings or tables). For food or weight questions, suggest common Egyptian foods (foul, ta'ameya, eggs, chicken, fish, koshari, rice, lentils, white cheese, yogurt, milk, sweet potato, fruit, nuts) with rough portions, and say this is general guidance, not a dietitian's advice. If a question is outside the app's scope, say you are not a specialist in it. Provide general health awareness only: do not diagnose, recommend medication doses, or suggest changing or stopping medication. Direct chest pain, shortness of breath, or severe dizziness to urgent medical care. This app does not replace a clinician.";
+export function buildSystem(locale: string | undefined, question: string, context: string): string {
+  const arabic = /[\u0600-\u06FF]/.test(question);
+  const base = arabic ? SYSTEM_AR : locale === "en" ? SYSTEM_EN : SYSTEM_AR;
+  return `${base}${context}`;
+}
 
 // رؤوس أمان لكل رد من الـ Worker: منع تخمين نوع المحتوى، ومنع تخزين ردود فيها بيانات المستخدم، وعدم تسريب الـ referrer، ومنع التضمين في iframe.
 const SECURITY_HEADERS = { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'" };
@@ -214,7 +221,7 @@ async function handleChat(request: Request, env: Env, cors: Record<string, strin
   if (!quota.allowed) return json({ error: "daily_limit" }, 429, { ...cors, "Retry-After": "3600" });
   const summary = sanitizeSummary(body.summary);
   const context = Object.keys(summary).length ? `\nOptional app summary (shared with the user's consent): ${JSON.stringify(summary)}` : "";
-  const system = `${body.locale === "en" ? SYSTEM_EN : SYSTEM_AR}${context}`;
+  const system = buildSystem(body.locale, question, context);
   let text = "";
   let reason: FallbackReason | null = "provider_error";
   try { ({ text, reason } = await generateReply(messages, system, env)); }
