@@ -32,7 +32,7 @@ const K = { sessions: "hm.sessions", checkins: "hm.checkins", settings: "hm.sett
 /** كل مفاتيح الجهاز اللي "مسح كل البيانات" لازم يشيلها */
 export const ALL_LOCAL_KEYS = [
   ...Object.values(K), "hm.medications", "hm.routine", "hm.assistant.chat", "hm.assistant.summary-consent",
-  "hm.cloud.owner", "hm.cloud.consent", "hm.cloud.lastSync", "hm.med.notified", "hm.push.enabled",
+  "hm.cloud.owner", "hm.cloud.consent", "hm.cloud.lastSync", "hm.med.notified", "hm.push.enabled", "hm.profile", "hm.meals", "hm.food.photo-consent",
 ] as const;
 
 function read<T>(key: string, fallback: T): T {
