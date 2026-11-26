@@ -82,9 +82,9 @@ async function recognize(file: File): Promise<{ dish: string; grams: number } | 
 export function renderFoodCard(): void {
   let card = document.getElementById("food-card");
   if (!card) {
-    const anchor = document.getElementById("streak-panel");
-    if (!anchor) return;
-    card = document.createElement("section"); card.id = "food-card"; card.className = "panel food-card"; anchor.before(card);
+    const host = document.getElementById("tab-food");
+    if (!host) return;
+    card = document.createElement("section"); card.id = "food-card"; card.className = "panel food-card"; host.append(card);
   }
   const root = card; root.replaceChildren();
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls = "", text = ""): HTMLElementTagNameMap[K] => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; };
@@ -154,3 +154,5 @@ export function renderFoodCard(): void {
   }
   update();
 }
+
+window.addEventListener("healthmate:locale", () => { const host = document.getElementById("tab-food"); if (host && !host.hidden) renderFoodCard(); });
