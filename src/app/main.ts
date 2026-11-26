@@ -157,8 +157,7 @@ function renderPicker(): void {
     const copy = EXERCISE_COPY[ex.id];
     b.innerHTML = `<span class="exercise-card-art"></span><span class="exercise-copy"><b></b><small></small><span class="muscle-badge"></span></span><span class="exercise-start"><span data-start></span><svg class="exercise-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>`;
     const art = b.querySelector(".exercise-card-art")!;
-    const photoNames: Record<string, string> = { squat: "squat.webp", pushup: "pushup.webp", plank: "plank.webp", lunge: "lunge.webp", glute_bridge: "glute-bridge.webp", wall_sit: "wall-sit.webp", sit_to_stand: "sit-to-stand.webp", high_knees: "high-knees.jpg", mountain_climbers: "mountain-climbers.jpg", leg_raise: "leg-raise.jpg", goblet_squat: "goblet-squat.jpg", biceps_curl: "biceps-curl.jpg", shoulder_press: "shoulder-press.jpg", lateral_raise: "lateral-raise.jpg", romanian_deadlift: "romanian-deadlift.jpg" };
-    const imageName = photoNames[ex.id];
+    const imageName = EXERCISE_PHOTOS[ex.id];
     if (imageName) {
       const img = document.createElement("img");
       img.className = "exercise-card-photo";
@@ -196,12 +195,24 @@ function openIntro(ex: ExerciseDef): void {
   $("summary").hidden = true;
   renderIntro(ex);
 }
+// صور التمارين الحقيقية (اسم الملف بالامتداد)
+const EXERCISE_PHOTOS: Record<string, string> = { squat: "squat.webp", pushup: "pushup.webp", plank: "plank.webp", lunge: "lunge.webp", glute_bridge: "glute-bridge.webp", wall_sit: "wall-sit.webp", sit_to_stand: "sit-to-stand.webp", high_knees: "high-knees.jpg", mountain_climbers: "mountain-climbers.jpg", leg_raise: "leg-raise.jpg", goblet_squat: "goblet-squat.jpg", biceps_curl: "biceps-curl.jpg", shoulder_press: "shoulder-press.jpg", lateral_raise: "lateral-raise.jpg", romanian_deadlift: "romanian-deadlift.jpg" };
 function renderIntro(ex: ExerciseDef): void {
   $("intro-title").textContent = `${exerciseName(ex.id)}${settings.level === "easy" ? ` (${t("easyMode")})` : ""}`;
   const art = $("intro-art");
   art.replaceChildren();
-  const svg = renderIllustration(ex.id, exerciseName(ex.id));
-  if (svg) art.append(svg);
+  const photo = EXERCISE_PHOTOS[ex.id];
+  if (photo) {
+    const img = document.createElement("img");
+    img.className = "intro-photo";
+    img.src = `${import.meta.env.BASE_URL}images/exercises/${photo}`;
+    img.alt = exerciseName(ex.id);
+    img.decoding = "async";
+    art.append(img);
+  } else {
+    const svg = renderIllustration(ex.id, exerciseName(ex.id));
+    if (svg) art.append(svg);
+  }
   const notes = [needsSideView(ex) ? t("sideViewHint") : "", ex.durationSec ? t("timedHint", { seconds: ex.durationSec }) : ""].filter(Boolean);
   $("intro-notes").textContent = notes.join(" ");
   let details = document.getElementById("intro-details");
