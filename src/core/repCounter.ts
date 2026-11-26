@@ -33,6 +33,7 @@ export interface CounterOptions {
  * - تمارين الثبات: الوقت يتحسب بس وقت ما كل فحوصات "hold" سليمة.
  */
 export function createCounter(def: ExerciseDef, level: Level, options: CounterOptions = {}) {
+  if (def.perSide && (def.primary === "elbow" || def.primary === "shoulder")) return createSideCounter(def, level, options);
   const state: CounterState = { phase: "unknown", goodReps: 0, badReps: 0, holdSeconds: 0 };
   const minRepMs = options.minRepMs ?? 0;
   const maxRepMs = options.maxRepMs ?? Infinity;
@@ -160,6 +161,64 @@ export function createCounter(def: ExerciseDef, level: Level, options: CounterOp
       nextMilestone = 10;
       downStartedAt = null;
       lostSince = null;
+    },
+  };
+}
+
+// لو الاتنين خلصوا تكرار في الفترة دي نعتبره تكرار واحد (بايسبس بالاتنين مع بعض)
+const SAME_REP_MS = 700;
+
+/**
+ * تمارين الدراعين: عدّاد لكل دراع بنفس منطق العدّاد العادي، والمجموع هو العدد.
+ * كده التبادل (دراع بعد دراع) ودراع واحدة بيتعدّوا، والاتنين مع بعض = تكرار واحد.
+ */
+function createSideCounter(def: ExerciseDef, level: Level, options: CounterOptions) {
+  const key = def.primary as "elbow" | "shoulder";
+  const sideDef: ExerciseDef = { ...def, perSide: false };
+  const left = createCounter(sideDef, level, options);
+  const right = createCounter(sideDef, level, options);
+  const state: CounterState = { phase: "unknown", goodReps: 0, badReps: 0, holdSeconds: 0 };
+  let lastRepAt = -Infinity;
+
+  function sideMetrics(m: Metrics, side: "L" | "R"): Metrics {
+    const out: Metrics = { ...m };
+    const l = m[`${key}L`], r = m[`${key}R`];
+    // مفيش قياس لكل دراع: نستخدم المتوسط على الدراع الشمال بس
+    const v = side === "L" ? (l ?? (r === undefined ? m[key] : undefined)) : r;
+    if (v === undefined) delete out[key];
+    else out[key] = v;
+    return out;
+  }
+  function sync(): void {
+    state.phase = left.state.phase === "down" || right.state.phase === "down" ? "down" : left.state.phase === "up" || right.state.phase === "up" ? "up" : "unknown";
+  }
+
+  return {
+    state,
+    update(m: Metrics, nowMs: number): CounterEvent[] {
+      const events: CounterEvent[] = [];
+      for (const [counter, side] of [[left, "L"], [right, "R"]] as const) {
+        for (const e of counter.update(sideMetrics(m, side), nowMs)) {
+          if (e.type === "rep") {
+            // نفس التكرار من الدراع التانية: نتجاهله بدل ما يتعدّ مرتين
+            if (nowMs - lastRepAt < SAME_REP_MS) continue;
+            lastRepAt = nowMs;
+            if (e.correct) state.goodReps++;
+            else state.badReps++;
+          }
+          events.push(e);
+        }
+      }
+      sync();
+      return events;
+    },
+    reset() {
+      left.reset();
+      right.reset();
+      state.phase = "unknown";
+      state.goodReps = 0;
+      state.badReps = 0;
+      lastRepAt = -Infinity;
     },
   };
 }
