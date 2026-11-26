@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const pkg = resolve(root, "node_modules/@mediapipe/tasks-vision");
 const out = resolve(root, "web/vendor");
-const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+// lite و full محليين، و heavy بيتحمّل من النت لما المستخدم يختاره
+const MODELS = ["lite", "full"].map((v) => ({ name: `pose_landmarker_${v}.task`, url: `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${v}/float16/1/pose_landmarker_${v}.task` }));
 const exists = (p) => access(p).then(() => true, () => false);
 
 try {
@@ -15,11 +16,12 @@ try {
   await mkdir(resolve(out, "mediapipe"), { recursive: true });
   await cp(resolve(pkg, "vision_bundle.mjs"), resolve(out, "mediapipe/vision_bundle.mjs"));
   await cp(resolve(pkg, "wasm"), resolve(out, "mediapipe/wasm"), { recursive: true });
-  const modelPath = resolve(out, "models/pose_landmarker_lite.task");
-  if (!(await exists(modelPath))) {
+  for (const m of MODELS) {
+    const modelPath = resolve(out, "models", m.name);
+    if (await exists(modelPath)) continue;
     await mkdir(dirname(modelPath), { recursive: true });
-    const res = await fetch(MODEL_URL);
-    if (!res.ok) throw new Error(`تعذّر تنزيل الموديل (${res.status})`);
+    const res = await fetch(m.url);
+    if (!res.ok) throw new Error(`تعذّر تنزيل الموديل ${m.name} (${res.status})`);
     await writeFile(modelPath, Buffer.from(await res.arrayBuffer()));
   }
   console.log("vendor: MediaPipe جاهز في web/vendor");
