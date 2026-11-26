@@ -8,7 +8,7 @@ export interface Landmark {
 }
 
 // مفاتيح القياسات المحسوبة من الـ landmarks
-export type MetricKey = "knee" | "hip" | "elbow" | "torso" | "bodyLine" | "hipDrop";
+export type MetricKey = "knee" | "hip" | "elbow" | "torso" | "bodyLine" | "hipDrop" | "shoulder";
 export type Metrics = Partial<Record<MetricKey, number>>;
 
 // "normal" للشباب والمعتاد، "easy" لمبتدئين وكبار السن ومحدودي الحركة (حدود أوسع)
@@ -46,6 +46,8 @@ export interface ExerciseDef {
   durationSec?: number;
   /** زاوية التصوير المطلوبة. الافتراضي "side" لأن زوايا المفاصل بتتحسب غلط من الأمام. */
   view?: "side" | "any";
+  // تمرين بأوزان، بيظهر في قسم لوحده
+  weighted?: boolean;
   cues: {
     start: string;
     goodRep: string;
