@@ -6,9 +6,11 @@ import { lunge } from "./lunge.ts";
 import { gluteBridge } from "./glute-bridge.ts";
 import { wallSit } from "./wall-sit.ts";
 import { sitToStand } from "./sit-to-stand.ts";
+import { highKnees, mountainClimbers, legRaise } from "./more.ts";
+import { WEIGHTED } from "./weighted.ts";
 
 // لإضافة تمرين جديد: اكتب ملف واحد بنفس شكل squat.ts وأضفه هنا
-export const EXERCISES: ExerciseDef[] = [squat, pushup, plank, lunge, gluteBridge, wallSit, sitToStand];
+export const EXERCISES: ExerciseDef[] = [squat, pushup, plank, lunge, gluteBridge, wallSit, sitToStand, highKnees, mountainClimbers, legRaise, ...WEIGHTED];
 
 export function getExercise(id: string): ExerciseDef {
   const ex = EXERCISES.find((e) => e.id === id);
