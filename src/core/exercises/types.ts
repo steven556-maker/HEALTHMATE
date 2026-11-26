@@ -1,3 +1,5 @@
+// أنواع مشتركة للمنطق الصافي (بدون أي اعتماد على المتصفح أو React)
+
 export interface Landmark {
   x: number; // 0..1 (عرض الصورة)
   y: number; // 0..1 (ارتفاع الصورة، لأسفل)
@@ -6,7 +8,7 @@ export interface Landmark {
 }
 
 // مفاتيح القياسات المحسوبة من الـ landmarks
-export type MetricKey = "knee" | "hip" | "elbow" | "torso" | "bodyLine" | "hipDrop" | "shoulder";
+export type MetricKey = "knee" | "hip" | "elbow" | "torso" | "bodyLine" | "hipDrop" | "shoulder" | "elbowL" | "elbowR" | "shoulderL" | "shoulderR";
 export type Metrics = Partial<Record<MetricKey, number>>;
 
 // "normal" للشباب والمعتاد، "easy" لمبتدئين وكبار السن ومحدودي الحركة (حدود أوسع)
@@ -44,6 +46,8 @@ export interface ExerciseDef {
   durationSec?: number;
   /** زاوية التصوير المطلوبة. الافتراضي "side" لأن زوايا المفاصل بتتحسب غلط من الأمام. */
   view?: "side" | "any";
+  /** كل دراع بتتعدّ لوحدها (بايسبس بالتبادل، ضغط كتف بدراع واحدة). primary لازم يكون elbow أو shoulder. */
+  perSide?: boolean;
   // تمرين بأوزان، بيظهر في قسم لوحده
   weighted?: boolean;
   cues: {
