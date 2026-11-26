@@ -157,7 +157,7 @@ function renderPicker(): void {
     const copy = EXERCISE_COPY[ex.id];
     b.innerHTML = `<span class="exercise-card-art"></span><span class="exercise-copy"><b></b><small></small><span class="muscle-badge"></span></span><span class="exercise-start"><span data-start></span><svg class="exercise-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>`;
     const art = b.querySelector(".exercise-card-art")!;
-    const photoNames: Record<string, string> = { squat: "squat.webp", pushup: "pushup.webp", plank: "plank.webp", lunge: "lunge.webp", glute_bridge: "glute-bridge.webp", wall_sit: "wall-sit.webp", sit_to_stand: "sit-to-stand.webp", high_knees: "high-knees.jpg", mountain_climbers: "mountain-climbers.jpg", leg_raise: "leg-raise.jpg" };
+    const photoNames: Record<string, string> = { squat: "squat.webp", pushup: "pushup.webp", plank: "plank.webp", lunge: "lunge.webp", glute_bridge: "glute-bridge.webp", wall_sit: "wall-sit.webp", sit_to_stand: "sit-to-stand.webp", high_knees: "high-knees.jpg", mountain_climbers: "mountain-climbers.jpg", leg_raise: "leg-raise.jpg", goblet_squat: "goblet-squat.jpg", biceps_curl: "biceps-curl.jpg", shoulder_press: "shoulder-press.jpg", lateral_raise: "lateral-raise.jpg", romanian_deadlift: "romanian-deadlift.jpg" };
     const imageName = photoNames[ex.id];
     if (imageName) {
       const img = document.createElement("img");
