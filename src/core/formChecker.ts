@@ -4,6 +4,10 @@ import type { ExerciseDef, FormCheck, Level, MetricKey, Metrics } from "./exerci
 export function metricKeysFor(def: ExerciseDef): MetricKey[] {
   const keys = new Set<MetricKey>([def.primary, ...def.requires]);
   for (const c of def.checks) c.needs.forEach((k) => keys.add(k));
+  if (def.perSide && (def.primary === "elbow" || def.primary === "shoulder")) {
+    keys.add(`${def.primary}L`);
+    keys.add(`${def.primary}R`);
+  }
   return [...keys];
 }
 
