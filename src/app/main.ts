@@ -3,6 +3,9 @@ import { EXERCISES, getExercise, needsSideView } from "../core/exercises/index.t
 import type { ExerciseDef, Landmark } from "../core/exercises/types.ts";
 import { computeMetrics, bodyFraming, viewOrientation } from "../core/pose/angles.ts";
 import { createSmoother } from "../core/pose/smoothing.ts";
+import { createLandmarkFilter } from "../core/pose/one-euro.ts";
+import { createFpsGovernor, lighterTier, startTier } from "../core/pose/model-tier.ts";
+import type { PoseTier } from "../core/pose/model-tier.ts";
 import { createPoseLoop } from "../core/pose/scheduler.ts";
 import type { FrameScheduler } from "../core/pose/scheduler.ts";
 import { createCounter } from "../core/repCounter.ts";
@@ -11,7 +14,7 @@ import { metricKeysFor } from "../core/formChecker.ts";
 import { createCueThrottle, sayCount } from "../core/cues.ts";
 import { initProfile } from "./profile.ts";
 import { renderExerciseDetails, renderRestTimer, nextSetNumber, stopRestTimer } from "./exercise-details.ts";
-import { EXERCISE_COPY, cueText, exerciseName } from "./exercise-copy.ts";
+import { EXERCISE_COPY, copyText, cueText, exerciseName } from "./exercise-copy.ts";
 import { $, showToast } from "./ui.ts";
 import { initReminders } from "./reminders.ts";
 import { initParq, openParq } from "./parq-ui.ts";
@@ -28,18 +31,22 @@ import type { Settings, FontSize, Theme } from "./storage.ts";
 import { initVoice, unlockAudio, speak, setMuted, canSpeakCurrentLocale, playRecordedCue } from "./voice.ts";
 import { applyLocale, getLocale, t } from "./i18n.ts";
 import { initRoutine } from "./routine.ts";
+import { initDailyPlan } from "./daily-plan.ts";
 
 // MediaPipe
 // الأولوية للنسخة المستضافة محليًا (web/vendor، بتتجهّز بـ `npm run vendor`) عشان التمرين يشتغل offline فعلًا.
 // لو مش موجودة (مثلًا في التطوير) بنرجع للـ CDN بنفس الإصدار المثبّت في package.json.
 const MP_VERSION = "0.10.14";
 const MP_LOCAL = `${import.meta.env.BASE_URL}vendor/mediapipe`;
-const MP_LOCAL_MODEL = `${import.meta.env.BASE_URL}vendor/models/pose_landmarker_lite.task`;
+const modelFile = (tier: PoseTier) => `pose_landmarker_${tier}.task`;
+const MP_LOCAL_MODEL = (tier: PoseTier) => `${import.meta.env.BASE_URL}vendor/models/${modelFile(tier)}`;
 const MP_CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}`;
-const MP_CDN_MODEL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+const MP_CDN_MODEL = (tier: PoseTier) => `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${tier}/float16/1/${modelFile(tier)}`;
+// لو العد طلع أسوأ بالـ 3D غيّرها لـ false
+const USE_WORLD_LANDMARKS = true;
 
 interface PoseLandmarkerLike {
-  detectForVideo(video: HTMLVideoElement, ts: number): { landmarks?: Landmark[][] };
+  detectForVideo(video: HTMLVideoElement, ts: number): { landmarks?: Landmark[][]; worldLandmarks?: Landmark[][] };
   close(): void;
 }
 
@@ -58,6 +65,7 @@ function applySettings(): void {
   pressSeg($("set-font"), settings.fontSize);
   pressSeg($("set-facing"), settings.facing);
   pressSeg($("set-theme"), settings.theme);
+  pressSeg($("set-posemodel"), settings.poseModel ?? "standard");
   applyTheme(settings.theme);
 }
 function applyTheme(theme: Theme): void {
@@ -97,6 +105,10 @@ function initChrome(): void {
     const v = (e.target as HTMLElement).dataset.v as Settings["facing"] | undefined;
     if (v) update({ facing: v });
   };
+  $("set-posemodel").onclick = (e) => {
+    const v = (e.target as HTMLElement).dataset.v as Settings["poseModel"] | undefined;
+    if (v) { tierCap = null; update({ poseModel: v }); } // نجرب الموديل المطلوب من الأول
+  };
   $("set-theme").onclick = (e) => {
     const v = (e.target as HTMLElement).dataset.v as Theme | undefined;
     if (v) update({ theme: v });
@@ -135,6 +147,10 @@ function showTab(tab: "workout" | "progress" | "food" | "medications" | "assista
 function renderPicker(): void {
   const cards = $("cards");
   cards.innerHTML = "";
+  const weightedCards = $("cards-weighted");
+  weightedCards.innerHTML = "";
+  const hasWeighted = EXERCISES.some((e) => e.weighted);
+  $("weighted-section").hidden = !hasWeighted;
   for (const ex of EXERCISES) {
     const b = document.createElement("button");
     b.className = "exercise-card";
@@ -163,12 +179,12 @@ function renderPicker(): void {
         art.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${copy?.icon ?? "M4 12h16"}"/></svg>`;
       }
     }
-    b.querySelector("b")!.textContent = copy ? t(copy.name) : ex.id;
-    b.querySelector("small")!.textContent = copy ? t(copy.hint) : "";
-    b.querySelector(".muscle-badge")!.textContent = copy ? t(copy.muscle) : "";
+    b.querySelector("b")!.textContent = copy ? copyText(copy.name) : ex.id;
+    b.querySelector("small")!.textContent = copy ? copyText(copy.hint) : "";
+    b.querySelector(".muscle-badge")!.textContent = copy ? copyText(copy.muscle) : "";
     b.querySelector("[data-start]")!.textContent = t("startCamera");
     b.onclick = () => openIntro(ex);
-    cards.appendChild(b);
+    (ex.weighted ? weightedCards : cards).appendChild(b);
   }
 }
 function openIntro(ex: ExerciseDef): void {
@@ -205,6 +221,11 @@ interface Session {
   stream: MediaStream;
   counter: ReturnType<typeof createCounter>;
   smoother: ReturnType<typeof createSmoother>;
+  filter: ReturnType<typeof createLandmarkFilter>;
+  worldFilter: ReturnType<typeof createLandmarkFilter>;
+  governor: ReturnType<typeof createFpsGovernor>;
+  lowConf: number;
+  lastLowAt: number;
   throttle: ReturnType<typeof createCueThrottle>;
   keys: ReturnType<typeof metricKeysFor>;
   phase: "setup" | "active";
@@ -226,43 +247,81 @@ interface Session {
 let pendingExercise: ExerciseDef | null = null;
 let session: Session | null = null;
 let landmarker: PoseLandmarkerLike | null = null;
+let landmarkerTier: PoseTier | null = null;
 let landmarkerLoading: Promise<PoseLandmarkerLike> | null = null;
+// لو نزلنا لموديل أخف بنفضل عليه لحد ما المستخدم يغيّر الإعداد
+let tierCap: PoseTier | null = null;
 
-async function localVendorAvailable(): Promise<boolean> {
+async function urlAvailable(url: string): Promise<boolean> {
   try {
-    const res = await fetch(`${MP_LOCAL}/vision_bundle.mjs`, { method: "HEAD" });
+    const res = await fetch(url, { method: "HEAD" });
     const type = res.headers.get("content-type") ?? "";
     return res.ok && !type.includes("text/html"); // السيرفر ممكن يرجّع index.html لأي مسار مش موجود
   } catch { return false; }
 }
 
+async function createLandmarker(tier: PoseTier): Promise<PoseLandmarkerLike> {
+  const local = await urlAvailable(`${MP_LOCAL}/vision_bundle.mjs`);
+  const base = local ? MP_LOCAL : MP_CDN;
+  // heavy تقيل (30MB) فبيتحمّل من النت، والباقي محلي لو موجود
+  const model = tier !== "heavy" && (await urlAvailable(MP_LOCAL_MODEL(tier))) ? MP_LOCAL_MODEL(tier) : MP_CDN_MODEL(tier);
+  const mod = await import(/* @vite-ignore */ `${base}/vision_bundle.mjs`);
+  const fileset = await mod.FilesetResolver.forVisionTasks(`${base}/wasm`);
+  const make = (delegate: "GPU" | "CPU") =>
+    mod.PoseLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: model, delegate },
+      runningMode: "VIDEO",
+      numPoses: 1,
+    }) as Promise<PoseLandmarkerLike>;
+  try {
+    return await make("GPU");
+  } catch {
+    return await make("CPU"); // بعض الأجهزة مفيهاش GPU delegate
+  }
+}
+
+// لو التحميل فشل بينزل للأخف
 async function loadLandmarker(): Promise<PoseLandmarkerLike> {
-  if (landmarker) return landmarker;
+  const wanted = tierCap ?? startTier(settings.poseModel);
+  if (landmarker && landmarkerTier === wanted) return landmarker;
   landmarkerLoading ??= (async () => {
-    const local = await localVendorAvailable();
-    const base = local ? MP_LOCAL : MP_CDN;
-    const model = local ? MP_LOCAL_MODEL : MP_CDN_MODEL;
-    const mod = await import(/* @vite-ignore */ `${base}/vision_bundle.mjs`);
-    const fileset = await mod.FilesetResolver.forVisionTasks(`${base}/wasm`);
-    const make = (delegate: "GPU" | "CPU") =>
-      mod.PoseLandmarker.createFromOptions(fileset, {
-        baseOptions: { modelAssetPath: model, delegate },
-        runningMode: "VIDEO",
-        numPoses: 1,
-      });
-    try {
-      landmarker = (await make("GPU")) as PoseLandmarkerLike;
-    } catch {
-      landmarker = (await make("CPU")) as PoseLandmarkerLike; // بعض الأجهزة مفيهاش GPU delegate
+    let tier: PoseTier | null = wanted;
+    let lastErr: unknown = new Error("no_model");
+    while (tier) {
+      try {
+        const lm = await createLandmarker(tier);
+        const old = landmarker;
+        landmarker = lm; landmarkerTier = tier;
+        if (old && old !== lm) { try { old.close(); } catch { /* تجاهل */ } }
+        if (tier !== wanted) tierCap = tier;
+        return lm;
+      } catch (err) { lastErr = err; tier = lighterTier(tier); }
     }
-    return landmarker;
+    throw lastErr;
   })();
   try {
     return await landmarkerLoading;
-  } catch (err) {
-    landmarkerLoading = null; // نسمح بإعادة المحاولة
-    throw err;
+  } finally {
+    landmarkerLoading = null; // نسمح بإعادة المحاولة أو بتغيير الموديل
   }
+}
+
+let downgrading = false;
+// الجهاز بطيء: نجرب موديل أخف من غير ما نوقف الجلسة
+async function downgradeModel(s: Session): Promise<void> {
+  if (downgrading || !landmarkerTier) return;
+  const next = lighterTier(landmarkerTier);
+  if (!next) return;
+  downgrading = true;
+  try {
+    const lm = await createLandmarker(next);
+    if (!session || session !== s) { try { lm.close(); } catch { /* تجاهل */ } return; }
+    const old = landmarker;
+    landmarker = lm; landmarkerTier = next; tierCap = next;
+    if (old) { try { old.close(); } catch { /* تجاهل */ } }
+    s.governor.reset();
+    showToast(t("modelLighter"));
+  } catch { /* نكمّل على الموديل الحالي */ } finally { downgrading = false; }
 }
 
 function setStatus(message: string): void {
@@ -361,7 +420,12 @@ async function startSession(): Promise<void> {
     def,
     stream,
     counter: createCounter(def, settings.level, { minRepMs: 400, maxRepMs: 20_000, lostAbortMs: 2_000 }),
-    smoother: createSmoother(5),
+    smoother: createSmoother(3), // الـ landmarks متفلترة فمتوسط أقصر
+    filter: createLandmarkFilter(),
+    worldFilter: createLandmarkFilter(),
+    governor: createFpsGovernor(),
+    lowConf: 0,
+    lastLowAt: 0,
     throttle: createCueThrottle(4000, 1200),
     keys: metricKeysFor(def),
     phase: "setup",
@@ -447,7 +511,7 @@ function activate(s: Session): void {
   s.counter.reset();
   setStatus(exerciseName(s.def.id));
   const startKey = EXERCISE_COPY[s.def.id]?.start;
-  if (startKey) speakExerciseCue(START_RECORDINGS[s.def.id], t(startKey), { interrupt: true });
+  if (startKey) speakExerciseCue(START_RECORDINGS[s.def.id], copyText(startKey), { interrupt: true });
 }
 
 const browserFrameScheduler: FrameScheduler = {
@@ -466,14 +530,18 @@ function processFrame(s: Session): number {
   const now = performance.now();
   const res = landmarker.detectForVideo(video, now);
   const inferenceDuration = performance.now() - now;
-  const lms = res.landmarks?.[0];
+  const rawLms = res.landmarks?.[0];
+  const lms = rawLms ? s.filter.apply(rawLms, now) : undefined;
+  const rawWorld = USE_WORLD_LANDMARKS ? res.worldLandmarks?.[0] : undefined;
+  const world = rawWorld ? s.worldFilter.apply(rawWorld, now) : undefined;
+  if (s.governor.record(inferenceDuration)) void downgradeModel(s);
   const canvas = $<HTMLCanvasElement>("overlay");
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (!lms) {
     s.lostFrames++;
-    if (s.lostFrames > 10) s.smoother.reset();
+    if (s.lostFrames > 10) { s.smoother.reset(); s.filter.reset(); s.worldFilter.reset(); }
     if (s.phase === "setup") setStatus(framingMessage("no_body"));
     s.counter.update({}, now); // يقطع حساب الثبات
     return inferenceDuration;
@@ -501,8 +569,11 @@ function processFrame(s: Session): number {
     return inferenceDuration;
   }
 
-  const metrics = s.smoother.push(computeMetrics(lms, s.keys));
+  const metrics = s.smoother.push(computeMetrics(lms, s.keys, 0.5, { aspect: canvas.width / canvas.height, world }));
   const primary = metrics[s.def.primary];
+  // لو القياس الأساسي مش ظاهر حوالي ثانيتين نقول للمستخدم يظبط الإضاءة
+  s.lowConf = primary === undefined ? s.lowConf + 1 : 0;
+  if (s.lowConf >= 40 && now - s.lastLowAt > 8000) { s.lastLowAt = now; s.lowConf = 0; setMsg(t("lowConfidence")); }
   if (primary !== undefined && now - s.lastTraceAt >= 150) { s.trace.push(Math.round(primary * (s.def.primary === "hipDrop" ? 1000 : 10)) / (s.def.primary === "hipDrop" ? 1000 : 10)); s.lastTraceAt = now; }
   const events = s.counter.update(metrics, now);
   if (s.def.durationSec) {
@@ -644,6 +715,7 @@ window.addEventListener("healthmate:locale", () => {
   else if (session?.phase === "active") setStatus(exerciseName(session.def.id));
 });
 renderPicker();
+initDailyPlan();
 initProgress({ backToPicker, startSession, endSession, activate, getSession: () => session });
 initMedications();
 initProfile();
