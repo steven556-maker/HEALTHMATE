@@ -2,7 +2,7 @@ import type { ExerciseDef } from "./types.ts";
 import { squat } from "./squat.ts";
 
 // تمارين بأوزان. الكاميرا بتعدّ التكرارات وبتصحح الشكل بس، مابتعرفش الوزن
-// الحدود تقريبية ومش متجربة على كاميرا حقيقية
+// الحدود تقريبية. البايسبس اتظبط على فيديو حقيقي واحد (الكوع بيوصل حوالي 85-110 في أعلى نقطة، مش أقل)
 
 // سكوات بدمبل: نفس السكوات العادي بس بوزن
 export const gobletSquat: ExerciseDef = {
@@ -13,28 +13,29 @@ export const gobletSquat: ExerciseDef = {
   cues: { start: "امسك الدمبل قدام صدرك وانزل كأنك هتقعد", goodRep: "عاش، سكوات ممتاز", badRep: "السكوات ده مش مظبوط، ركّز على الشكل" },
 };
 
-// بايسبس: الكوع بيتحسب كمتوسط الدراعين، فاعمل الاتنين مع بعض
+// بايسبس: كل دراع بتتعدّ لوحدها، فالاتنين مع بعض أو بالتبادل أو دراع واحدة كله شغال
 export const bicepsCurl: ExerciseDef = {
   id: "biceps_curl",
   name: "بايسبس بدمبل",
   mode: "reps",
   primary: "elbow",
-  upAbove: { normal: 150, easy: 140 },
-  downBelow: { normal: 75, easy: 85 },
+  upAbove: { normal: 140, easy: 130 },
+  downBelow: { normal: 105, easy: 115 },
   requires: ["elbow"],
   view: "any",
+  perSide: true,
   weighted: true,
   checks: [
     {
       id: "curlTop",
       when: "bottom",
       needs: ["elbow"],
-      test: (m, level) => (m.elbow ?? 180) < (level === "easy" ? 70 : 60),
+      test: (m, level) => (m.elbow ?? 180) < (level === "easy" ? 110 : 100),
       msg: "اطلع بالدمبل أعلى لحد كتفك",
     },
   ],
   cues: {
-    start: "امسك الدمبلين ودراعاتك نازلة، اطلع بالاتنين مع بعض",
+    start: "امسك الدمبلين ودراعاتك نازلة، اطلع بالاتنين مع بعض أو بالتبادل",
     goodRep: "ممتاز، تكرار مظبوط",
     badRep: "اطلع بالدمبل أعلى وانزل لحد ما دراعك تتفرد",
   },
@@ -51,6 +52,7 @@ export const shoulderPress: ExerciseDef = {
   downBelow: { normal: 110, easy: 120 },
   requires: ["elbow"],
   view: "any",
+  perSide: true,
   weighted: true,
   checks: [
     {
@@ -79,6 +81,7 @@ export const lateralRaise: ExerciseDef = {
   downBelow: { normal: 35, easy: 40 },
   requires: ["shoulder"],
   view: "any",
+  perSide: true,
   weighted: true,
   checks: [
     {
