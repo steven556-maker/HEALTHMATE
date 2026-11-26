@@ -34,6 +34,38 @@ const DETAILS: Record<string, Detail> = {
     steps: [["اقعد على حافة كرسي ثابت والقدمين على الأرض.", "Sit at the edge of a stable chair, feet on the floor."], ["قف بالكامل من غير ما تسند بإيديك لو تقدر.", "Stand up fully, without using your hands if you can."], ["اقعد ببطء وكرر.", "Sit back down slowly and repeat."]],
     mistake: ["الاندفاع لقدّام أو الارتماء على الكرسي.", "Rushing forward or dropping into the chair."],
   },
+  high_knees: {
+    steps: [["قف مستقيم والتصوير من الجنب.", "Stand tall, filmed from the side."], ["ارفع ركبتك لحد مستوى وسطك وبدّل بسرعة مريحة.", "Lift a knee to hip height and alternate at a comfortable pace."]],
+    mistake: ["الركبة مش بتطلع كفاية أو الجسم بيميل لورا.", "Knee not lifting high enough, or leaning back."],
+  },
+  mountain_climbers: {
+    steps: [["خد وضع الضغط والتصوير من الجنب.", "Start in a push-up position, filmed from the side."], ["شد ركبة ناحية صدرك وبدّل مع التانية.", "Drive one knee toward your chest and alternate."]],
+    mistake: ["الورك بيرتفع أو الركبة بتقف في النص.", "Hips pike up or the knee stops halfway."],
+  },
+  leg_raise: {
+    steps: [["نام على ضهرك والتصوير من الجنب ورجليك مفرودة.", "Lie on your back, filmed from the side, legs straight."], ["ارفع رجليك لحد ما يبقوا عموديين وانزل ببطء.", "Raise both legs until vertical, then lower slowly."]],
+    mistake: ["الركبة بتتثني أو أسفل الضهر بيتقوس.", "Knees bend or the lower back arches."],
+  },
+  goblet_squat: {
+    steps: [["امسك دمبل (أو زجاجة مية ثقيلة) قدام صدرك.", "Hold a dumbbell (or a heavy water bottle) at your chest."], ["انزل بالورك للخلف كأنك هتقعد وارجع لفوق.", "Sit your hips back and stand up again."]],
+    mistake: ["الضهر بينحني أو الركبة بتدخل لجوّه.", "Back rounds or knees cave in."],
+  },
+  biceps_curl: {
+    steps: [["امسك دمبل في كل إيد ودراعاتك نازلة، قدام الكاميرا.", "Hold a dumbbell in each hand, arms down, facing the camera."], ["اطلع بالاتنين مع بعض لحد كتفك وانزل ببطء.", "Curl both up to your shoulders, then lower slowly."]],
+    mistake: ["الكوع بيتحرك لقدام أو الدراع مش بتتفرد تحت.", "Elbows swing forward or arms don't fully straighten."],
+  },
+  shoulder_press: {
+    steps: [["امسك الدمبلين عند كتفك قدام الكاميرا.", "Hold dumbbells at shoulder height facing the camera."], ["ادفعهم لفوق لحد ما دراعك تتفرد وانزل ببطء.", "Press up until your arms are straight, then lower slowly."]],
+    mistake: ["تقوّس الضهر أو دراع مش بتتفرد بالكامل.", "Arching the back or not fully extending the arms."],
+  },
+  lateral_raise: {
+    steps: [["امسك دمبل في كل إيد ودراعاتك جنبك قدام الكاميرا.", "Hold a dumbbell in each hand at your sides, facing the camera."], ["ارفع دراعاتك للجنبين لحد مستوى الكتف وانزل ببطء.", "Raise both arms out to shoulder height, then lower slowly."]],
+    mistake: ["رفع الدراع أعلى من الكتف أو هز الجسم.", "Lifting above shoulder height or swinging the body."],
+  },
+  romanian_deadlift: {
+    steps: [["امسك الدمبلين قدام فخذك والتصوير من الجنب.", "Hold dumbbells in front of your thighs, filmed from the side."], ["اثني من الورك لورا وضهرك مستقيم لحد ركبتك وارجع.", "Hinge at the hips with a flat back to knee level, then return."]],
+    mistake: ["الضهر بينحني أو الحركة من الركبة مش من الورك.", "Rounded back, or bending the knees instead of the hips."],
+  },
 };
 
 const L = {
