@@ -384,3 +384,17 @@ main { padding-block-end: 128px; }
   .tab:not([hidden]) > .panel, .tab:not([hidden]) #cards > .exercise-card { animation: none; }
   .exercise-card, .weekly-cell, .food-group, .btn, .chat-chip, .send-orb, .healthmate-nav-host button { transition: none !important; transform: none !important; }
 }
+/* بحث الأكل */
+.food-results { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; max-height: 260px; overflow: auto; }
+.food-result { width: 100%; min-height: 44px; padding: 8px 12px; text-align: start; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.food-result:hover, .food-result:focus-visible { border-color: var(--accent); }
+.food-picked { margin: 6px 0; font-weight: 700; }
+
+/* قسم التمارين بأوزان + كارت خطة النهارده */
+.weighted-section { margin-top: var(--space-6); display: grid; gap: var(--space-3); }
+.weighted-section .section-heading h2 { margin: 0; font-size: 1.25rem; }
+.daily-plan { display: grid; gap: var(--space-2); margin-bottom: var(--space-4); }
+.daily-plan h2 { margin: 0; }
+.daily-plan-level { margin: 0; font-weight: 800; font-size: 1.05rem; color: var(--accent-text); }
+.daily-plan-level.is-rest, .daily-plan-level.is-light { color: var(--ink); }
+.daily-plan-list { margin: 0; padding-inline-start: 1.2rem; display: grid; gap: 4px; }
