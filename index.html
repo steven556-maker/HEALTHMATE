@@ -54,6 +54,8 @@
     <label class="setting-row"><span data-i18n="mute">كتم الإرشاد الصوتي</span><input type="checkbox" id="set-mute"></label>
     <div class="setting-row"><span data-i18n="fontSize">حجم الخط</span><div class="seg" id="set-font"><button data-v="normal" data-i18n="fontNormal">عادي</button><button data-v="large" data-i18n="fontLarge">كبير</button><button data-v="xlarge" data-i18n="fontXLarge">كبير جدًا</button></div></div>
     <div class="setting-row"><span data-i18n="camera">الكاميرا</span><div class="seg" id="set-facing"><button data-v="user" data-i18n="frontCamera">أمامية</button><button data-v="environment" data-i18n="rearCamera">خلفية</button></div></div>
+    <div class="setting-row"><span data-i18n="poseModel">موديل تتبع الحركة</span><div class="seg" id="set-posemodel"><button data-v="standard" data-i18n="poseStandard">عادي</button><button data-v="high" data-i18n="poseHigh">دقة أعلى</button></div></div>
+    <p class="hint" data-i18n="poseModelHint">دقة أعلى أدق لكن أبطأ وبتحمّل ملف كبير (حوالي 30MB) أول مرة. لو الجهاز بطيء بنرجع تلقائيًا للموديل الأخف.</p>
     <div class="setting-row"><span data-i18n="theme">المظهر</span><div class="seg" id="set-theme"><button data-v="auto" data-i18n="themeAuto">تلقائي</button><button data-v="light" data-i18n="themeLight">فاتح</button><button data-v="dark" data-i18n="themeDark">داكن</button></div></div>
     <p class="hint" data-i18n="backupHint">النسخة الاحتياطية ملف فيه بياناتك الصحية بدون تشفير. احفظه في مكان آمن.</p>
     <button id="btn-export-backup" class="btn" data-i18n="backupExport">تصدير نسخة احتياطية</button>
@@ -82,6 +84,10 @@
     <div id="picker">
       <div class="section-heading"><p class="eyebrow">HEALTHMATE</p><h1 data-i18n="chooseWorkout">اختر تمرينك</h1></div>
       <div id="cards" class="exercise-list"></div>
+      <section id="weighted-section" class="weighted-section" hidden>
+        <div class="section-heading"><h2 data-i18n="weightedTitle">تمارين بأوزان</h2><p class="hint" data-i18n="weightedHint">دمبل أو زجاجتين مية. الكاميرا بتعدّ التكرارات وبتصحح شكل الحركة، لكن مابتقيسش الوزن.</p></div>
+        <div id="cards-weighted" class="exercise-list"></div>
+      </section>
       <details class="disclosure camera-setup">
         <summary><span class="tip-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="3" width="10" height="13" rx="2"/><circle cx="12" cy="9.5" r="2.3"/><path d="m9 16-4 5m10-5 4 5m-7-5v5"/></svg></span><span data-i18n="cameraSetupTitle">إعداد الكاميرا</span></summary>
         <p data-i18n="framingHint">ضع الهاتف على حامل واجعل جسمك كاملًا ظاهرًا.</p>
