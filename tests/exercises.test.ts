@@ -171,7 +171,7 @@ test("رفع الأرجل: رفع كامل بركبة مفرودة = صح، ور
 test("بايسبس: ثني كامل = صح، ثني ناقص = خطأ", () => {
   const good = [170, ...ramp(170, 45), ...ramp(45, 170)].map((elbow) => ({ elbow }));
   assert.equal(run("biceps_curl", good).c.state.goodReps, 1);
-  const partial = [170, ...ramp(170, 70), ...ramp(70, 170)].map((elbow) => ({ elbow }));
+  const partial = [170, ...ramp(170, 102), ...ramp(102, 170)].map((elbow) => ({ elbow }));
   assert.deepEqual(run("biceps_curl", partial).reps[0].errors, ["curlTop"]);
 });
 
