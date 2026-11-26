@@ -1,4 +1,5 @@
-
+// تسجيل الوجبات: اختيار الأكلة والوزن يدويًا، أو صورة بتتحلل عبر الـ Worker بعد موافقة صريحة.
+// السعرات دايمًا تقدير من جدول صغير (worker/src/food.ts). السجل على الجهاز بس (hm.meals): مش بيتزامن ومش في النسخة الاحتياطية.
 import { DISHES, dishById, kcalRange, MAX_GRAMS, MIN_GRAMS } from "../../worker/src/food.ts";
 import type { Dish } from "../../worker/src/food.ts";
 import { allDishes, POPULAR, searchFoods, usdaToDish } from "../core/food-search.ts";
@@ -8,7 +9,7 @@ import { showToast } from "./ui.ts";
 
 const KEY = "hm.meals";
 const CONSENT = "hm.food.photo-consent";
-export interface Meal { at: number; dishId: string; grams: number; low: number; high: number }
+export interface Meal { at: number; dishId: string; grams: number; low: number; high: number; ar?: string; en?: string }
 
 export function readMeals(): Meal[] {
   try {
@@ -38,7 +39,7 @@ const S = {
   limit: ["وصلت للحد اليومي للصور. اختار يدويًا.", "Daily photo limit reached. Pick manually."],
   guess: ["اقتراح من الصورة، راجعه وعدّله:", "Suggestion from photo, review and edit:"],
   estimate: ["تقدير:", "Estimate:"], kcal: ["سعرة", "kcal"], add: ["سجّل الوجبة", "Log meal"],
-  today: ["النهارده", "Today"], week: ["آخر 7 أيام", "Last 7 days"], none: ["لسه مفيش وجبات مسجلة.", "No meals logged yet."],
+  today: ["النهارده", "Today"], todayMeals: ["وجبات النهارده", "Today's meals"], week: ["آخر 7 أيام", "Last 7 days"], none: ["لسه مفيش وجبات مسجلة.", "No meals logged yet."],
   invalid: ["راجع الوزن (20 إلى 1200 جرام).", "Check weight (20 to 1200 g)."], clear: ["مسح سجل الوجبات", "Clear meal log"],
   needConsent: ["علّم على الموافقة الأول عشان تستخدم الصورة.", "Tick the consent box first to use a photo."],
   photoTitle: ["أو صوّر الأكل", "Or take a photo"], addTitle: ["سجّل وجبة", "Log a meal"],
@@ -123,13 +124,14 @@ export function renderFoodCard(): void {
     if (q && !list.length) { const li = el("li", "hint", usdaPool ? tx("noResults") : tx("loadingDb")); results.append(li); return; }
     for (const d of list) {
       const li = el("li"); const b = el("button", "food-result", name(d)); b.type = "button"; b.setAttribute("role", "option");
-      b.onclick = () => { choose(d); results.replaceChildren(); search.value = ""; };
+      b.onclick = () => { choose(d); results.replaceChildren(); search.value = name(d); }; // الاسم يفضل ظاهر في خانة البحث
       li.append(b); results.append(li);
     }
     if (q && list.some((d) => d.usda)) results.append(el("li", "hint", tx("usdaNote")));
   };
   search.oninput = () => { renderResults(); if (!usdaPool) void loadUsda().then(renderResults); };
-  search.onfocus = () => { void loadUsda(); };
+  search.onfocus = () => { void loadUsda(); search.select(); }; // تحديد النص عشان البحث الجديد يمسحه
+  renderResults(); // أشهر الأكلات تظهر من الأول
   gramsIn.oninput = update;
 
   const f1 = el("label", "field"); f1.append(el("span", "", tx("dish")), search);
@@ -160,7 +162,7 @@ export function renderFoodCard(): void {
     const d = picked; const g = Number(gramsIn.value || d?.typicalG);
     const e = d ? kcalRange(d, g) : null;
     if (!d || !e) { msg.textContent = tx("invalid"); return; }
-    saveMeals([...readMeals(), { at: Date.now(), dishId: d.id, grams: Math.round(g), low: e.low, high: e.high }]);
+    saveMeals([...readMeals(), { at: Date.now(), dishId: d.id, grams: Math.round(g), low: e.low, high: e.high, ar: d.ar, en: d.en }]);
     gramsIn.value = ""; msg.textContent = ""; renderFoodCard();
   };
 
@@ -170,11 +172,17 @@ export function renderFoodCard(): void {
   const fmt = (t: { low: number; high: number } | null): string => (t ? (t.low === t.high ? `${t.low}` : `${t.low} - ${t.high}`) + ` ${tx("kcal")}` : "-");
   totals.append(el("p", "", `${tx("today")}: ${fmt(totalSince(meals, startOfDay.getTime()))}`), el("p", "", `${tx("week")}: ${fmt(totalSince(meals, now - 7 * 86400000))}`));
   if (!meals.length) totals.append(el("p", "hint", tx("none")));
+  const todays = meals.filter((m) => m.at >= startOfDay.getTime()).reverse();
+  const mealName = (m: Meal): string => (en() ? m.en ?? m.ar : m.ar ?? m.en) ?? (dishById(m.dishId) ? name(dishById(m.dishId)!) : "-");
+  const mealList = el("ul", "food-meals");
+  for (const m of todays) mealList.append(el("li", "", `${mealName(m)} - ${m.grams} ${tx("g")} - ${m.low === m.high ? m.low : `${m.low} - ${m.high}`} ${tx("kcal")}`));
 
   const group = (cls: string, ...nodes: HTMLElement[]): HTMLElement => { const g = el("div", cls); g.append(...nodes); return g; };
   const addBox = group("food-group", el("h3", "", tx("addTitle")), f1, results, pickedLine, f2, preview, el("p", "hint", tx("range")), add);
   const photoBox = group("food-group", el("h3", "", tx("photoTitle")), consentWrap, photoBtn, file, msg);
-  root.append(totals, addBox, photoBox);
+  root.append(totals);
+  if (todays.length) root.append(el("h3", "", tx("todayMeals")), mealList);
+  root.append(addBox, photoBox);
   if (meals.length) {
     const clr = el("button", "btn danger", tx("clear")); clr.type = "button";
     clr.onclick = () => { try { localStorage.removeItem(KEY); } catch { /* تجاهل */ } renderFoodCard(); };
