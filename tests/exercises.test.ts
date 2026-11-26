@@ -22,7 +22,7 @@ test("كل التمارين: معرّفات فريدة وحدود منطقية",
   for (const ex of EXERCISES) {
     if (ex.mode === "reps") for (const level of ["normal", "easy"] as const) assert.ok(ex.upAbove[level] > ex.downBelow[level], `${ex.id}/${level}`);
     assert.ok(ex.requires.length > 0 && ex.checks.length > 0, ex.id);
-    assert.ok(needsSideView(ex));
+    assert.equal(needsSideView(ex), ex.view !== "any", ex.id);
     for (const c of ex.checks) assert.ok(c.needs.every((k) => metricKeysFor(ex).includes(k)), `${ex.id}.${c.id}`);
   }
   // معرّفات الفحوصات لازم تكون فريدة عبر التمارين اللي نصوصها مختلفة
@@ -140,3 +140,60 @@ test("computeMetrics بيحسب زاوية الورك للجسر من الجنب
   const lms = makeLandmarks({ [LM.L_SHOULDER]: [0.2, 0.8], [LM.L_HIP]: [0.4, 0.8], [LM.L_KNEE]: [0.4 + 0.2 * k[0], 0.8 + 0.2 * k[1]] });
   assert.ok(Math.abs(computeMetrics(lms, ["hip"]).hip! - A) < 0.01);
 });
+
+// التمارين الجديدة (بقيم مصطنعة مش كاميرا حقيقية)
+test("التمارين الجديدة: قسم الأوزان منفصل وكل تمرين ليه نص عربي وإنجليزي", () => {
+  const weighted = EXERCISES.filter((e) => e.weighted).map((e) => e.id);
+  assert.deepEqual(weighted, ["goblet_squat", "biceps_curl", "shoulder_press", "lateral_raise", "romanian_deadlift"]);
+  for (const id of ["high_knees", "mountain_climbers", "leg_raise"]) assert.ok(!getExercise(id).weighted);
+});
+
+test("رفع الركبة: ركبة عالية = تكرار صح، ركبة واطية = خطأ", () => {
+  const good = [175, ...ramp(175, 130), ...ramp(130, 175)].map((hip) => ({ hip }));
+  assert.equal(run("high_knees", good).c.state.goodReps, 1);
+  const low = [175, ...ramp(175, 139), ...ramp(139, 175)].map((hip) => ({ hip }));
+  assert.deepEqual(run("high_knees", low).reps[0].errors, ["kneeHigh"]);
+});
+
+test("متسلق الجبال: بيعدّ تكرارين متتاليين", () => {
+  const rep = [...ramp(175, 130), ...ramp(130, 175)];
+  const r = run("mountain_climbers", [175, ...rep, ...rep].map((hip) => ({ hip })));
+  assert.equal(r.c.state.goodReps, 2);
+});
+
+test("رفع الأرجل: رفع كامل بركبة مفرودة = صح، وركبة مثنية = خطأ", () => {
+  const good = [175, ...ramp(175, 95), ...ramp(95, 175)].map((hip) => ({ hip, knee: 172 }));
+  assert.equal(run("leg_raise", good).c.state.goodReps, 1);
+  const bent = [175, ...ramp(175, 95), ...ramp(95, 175)].map((hip) => ({ hip, knee: 110 }));
+  assert.ok(run("leg_raise", bent).reps[0].errors.includes("legStraight"));
+});
+
+test("بايسبس: ثني كامل = صح، ثني ناقص = خطأ", () => {
+  const good = [170, ...ramp(170, 45), ...ramp(45, 170)].map((elbow) => ({ elbow }));
+  assert.equal(run("biceps_curl", good).c.state.goodReps, 1);
+  const partial = [170, ...ramp(170, 70), ...ramp(70, 170)].map((elbow) => ({ elbow }));
+  assert.deepEqual(run("biceps_curl", partial).reps[0].errors, ["curlTop"]);
+});
+
+test("ضغط الكتف (مقلوب): بيبدأ والكوع مثني، والضغطة الكاملة = صح", () => {
+  const good = [90, 90, ...ramp(90, 175), ...ramp(175, 90)].map((elbow) => ({ elbow }));
+  const r = run("shoulder_press", good);
+  assert.equal(r.c.state.goodReps, 1);
+  const partial = [90, 90, ...ramp(90, 163), ...ramp(163, 90)].map((elbow) => ({ elbow }));
+  assert.deepEqual(run("shoulder_press", partial).reps[0].errors, ["pressTop"]);
+});
+
+test("رفرفة جانبية: لحد الكتف = صح، أقل من كده = خطأ، وأعلى من الكتف = خطأ", () => {
+  const mk = (peak: number) => [15, 15, ...ramp(15, peak), ...ramp(peak, 15)].map((shoulder) => ({ shoulder }));
+  assert.equal(run("lateral_raise", mk(90)).c.state.goodReps, 1);
+  assert.deepEqual(run("lateral_raise", mk(77)).reps[0].errors, ["raiseHigh"]);
+  assert.deepEqual(run("lateral_raise", mk(130)).reps[0].errors, ["raiseLow"]);
+});
+
+test("ديدليفت روماني: ورك عميق وركبة شبه مفرودة = صح، وركبة مثنية = خطأ", () => {
+  const good = [175, ...ramp(175, 100), ...ramp(100, 175)].map((hip) => ({ hip, knee: 165 }));
+  assert.equal(run("romanian_deadlift", good).c.state.goodReps, 1);
+  const bent = [175, ...ramp(175, 100), ...ramp(100, 175)].map((hip) => ({ hip, knee: 110 }));
+  assert.ok(run("romanian_deadlift", bent).reps[0].errors.includes("kneesLocked"));
+});
+
