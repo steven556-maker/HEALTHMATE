@@ -10,14 +10,16 @@ export const LM = {
   L_ANKLE: 27, R_ANKLE: 28,
 } as const;
 
-type Pt = { x: number; y: number };
+type Pt = { x: number; y: number; z?: number };
 
 /** الزاوية عند النقطة b بين الخطين b→a و b→c بالدرجات (0..180) */
 export function angle(a: Pt, b: Pt, c: Pt): number {
-  const v1x = a.x - b.x, v1y = a.y - b.y;
-  const v2x = c.x - b.x, v2y = c.y - b.y;
-  const dot = v1x * v2x + v1y * v2y;
-  const n = Math.hypot(v1x, v1y) * Math.hypot(v2x, v2y);
+  // لو النقط معاها z بنحسب في 3D
+  const has3d = a.z !== undefined && b.z !== undefined && c.z !== undefined;
+  const v1x = a.x - b.x, v1y = a.y - b.y, v1z = has3d ? a.z! - b.z! : 0;
+  const v2x = c.x - b.x, v2y = c.y - b.y, v2z = has3d ? c.z! - b.z! : 0;
+  const dot = v1x * v2x + v1y * v2y + v1z * v2z;
+  const n = Math.hypot(v1x, v1y, v1z) * Math.hypot(v2x, v2y, v2z);
   if (n === 0) return NaN;
   const cos = Math.min(1, Math.max(-1, dot / n));
   return (Math.acos(cos) * 180) / Math.PI;
@@ -47,15 +49,19 @@ type JointName = keyof Side;
 interface MetricSpec {
   joints: JointName[];
   compute: (p: Pt[]) => number;
+  // زوايا المفاصل بس هي اللي ممكن تتحسب في 3D
+  angle3d?: boolean;
 }
 
 const SPECS: Record<MetricKey, MetricSpec> = {
-  knee: { joints: ["hip", "knee", "ankle"], compute: (p) => angle(p[0], p[1], p[2]) },
-  hip: { joints: ["shoulder", "hip", "knee"], compute: (p) => angle(p[0], p[1], p[2]) },
-  elbow: { joints: ["shoulder", "elbow", "wrist"], compute: (p) => angle(p[0], p[1], p[2]) },
+  knee: { joints: ["hip", "knee", "ankle"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
+  hip: { joints: ["shoulder", "hip", "knee"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
+  elbow: { joints: ["shoulder", "elbow", "wrist"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
+  // رفع الذراع عن الجسم: زاوية (ورك-كتف-كوع). ~15 والذراع نازل، ~90 والذراع أفقي
+  shoulder: { joints: ["hip", "shoulder", "elbow"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
   torso: { joints: ["shoulder", "hip"], compute: (p) => angleFromVertical(p[0], p[1]) },
   // 180 = جسم مستقيم (كتف-ورك-كاحل)
-  bodyLine: { joints: ["shoulder", "hip", "ankle"], compute: (p) => angle(p[0], p[1], p[2]) },
+  bodyLine: { joints: ["shoulder", "hip", "ankle"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
   // انحراف الورك عن خط الكتف-الكاحل كنسبة من طول الخط. موجب = الورك أنزل (هبوط)، سالب = أعلى (رفع)
   hipDrop: {
     joints: ["shoulder", "hip", "ankle"],
@@ -80,14 +86,27 @@ function sideVisible(lms: Landmark[], side: Side, joints: JointName[], minVis: n
  * يحسب القياسات المطلوبة فقط. لو الجانبين ظاهرين بثقة كافية يتم أخذ المتوسط،
  * ولو جانب واحد ظاهر (تصوير جانبي) يُستخدم هو. غير الظاهر يُترك undefined.
  */
-export function computeMetrics(lms: Landmark[], keys: MetricKey[], minVis = 0.5): Metrics {
+export interface MetricOptions {
+  // عرض الفيديو ÷ ارتفاعه، عشان الزوايا ما تتشوهش
+  aspect?: number;
+  // worldLandmarks (بالمتر) لو موجودة
+  world?: Landmark[];
+}
+
+export function computeMetrics(lms: Landmark[], keys: MetricKey[], minVis = 0.5, opts: MetricOptions = {}): Metrics {
   const out: Metrics = {};
+  const aspect = opts.aspect !== undefined && Number.isFinite(opts.aspect) && opts.aspect > 0 ? opts.aspect : 1;
+  const world = opts.world;
   for (const key of keys) {
     const spec = SPECS[key];
     const values: number[] = [];
     for (const side of [LEFT, RIGHT]) {
       if (!sideVisible(lms, side, spec.joints, minVis)) continue;
-      const pts = spec.joints.map((j) => lms[side[j]]);
+      const w = spec.angle3d && world ? spec.joints.map((j) => world[side[j]]) : null;
+      const use3d = !!w && w.every((l) => l !== undefined && Number.isFinite(l.x) && Number.isFinite(l.y) && Number.isFinite(l.z));
+      const pts = use3d
+        ? w!.map((l) => ({ x: l.x, y: l.y, z: l.z }))
+        : spec.joints.map((j) => ({ x: lms[side[j]].x * aspect, y: lms[side[j]].y }));
       const v = spec.compute(pts);
       if (Number.isFinite(v)) values.push(v);
     }
