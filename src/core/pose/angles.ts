@@ -51,6 +51,8 @@ interface MetricSpec {
   compute: (p: Pt[]) => number;
   // زوايا المفاصل بس هي اللي ممكن تتحسب في 3D
   angle3d?: boolean;
+  // لو متحدد، القياس بيتحسب من الجانب ده بس (من غير متوسط)
+  only?: "L" | "R";
 }
 
 const SPECS: Record<MetricKey, MetricSpec> = {
@@ -59,6 +61,10 @@ const SPECS: Record<MetricKey, MetricSpec> = {
   elbow: { joints: ["shoulder", "elbow", "wrist"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
   // رفع الذراع عن الجسم: زاوية (ورك-كتف-كوع). ~15 والذراع نازل، ~90 والذراع أفقي
   shoulder: { joints: ["hip", "shoulder", "elbow"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
+  elbowL: { joints: ["shoulder", "elbow", "wrist"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true, only: "L" },
+  elbowR: { joints: ["shoulder", "elbow", "wrist"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true, only: "R" },
+  shoulderL: { joints: ["hip", "shoulder", "elbow"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true, only: "L" },
+  shoulderR: { joints: ["hip", "shoulder", "elbow"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true, only: "R" },
   torso: { joints: ["shoulder", "hip"], compute: (p) => angleFromVertical(p[0], p[1]) },
   // 180 = جسم مستقيم (كتف-ورك-كاحل)
   bodyLine: { joints: ["shoulder", "hip", "ankle"], compute: (p) => angle(p[0], p[1], p[2]), angle3d: true },
@@ -101,6 +107,7 @@ export function computeMetrics(lms: Landmark[], keys: MetricKey[], minVis = 0.5,
     const spec = SPECS[key];
     const values: number[] = [];
     for (const side of [LEFT, RIGHT]) {
+      if (spec.only && (spec.only === "L") !== (side === LEFT)) continue;
       if (!sideVisible(lms, side, spec.joints, minVis)) continue;
       const w = spec.angle3d && world ? spec.joints.map((j) => world[side[j]]) : null;
       const use3d = !!w && w.every((l) => l !== undefined && Number.isFinite(l.x) && Number.isFinite(l.y) && Number.isFinite(l.z));
