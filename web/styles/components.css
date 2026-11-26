@@ -80,7 +80,7 @@ main { flex: 1; width: 100%; padding: var(--space-5) var(--space-4) 112px; }
 .exercise-card:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); background: var(--accent-wash); }
 .exercise-card:active { transform: scale(.99); }
 .exercise-card-art { display: grid; place-items: center; width: 76px; height: 76px; flex: 0 0 76px; overflow: hidden; border-radius: var(--radius); background: var(--surface-muted); color: var(--accent-text); }
-.exercise-card-art .exercise-illustration { width: 70px; height: auto; }
+.exercise-card-art .exercise-illustration { width: 100%; height: auto; }
 .exercise-card-photo { width: 100%; height: 100%; object-fit: cover; }
 .exercise-card-art > svg:not(.exercise-illustration) { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .exercise-copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
@@ -107,8 +107,16 @@ main { flex: 1; width: 100%; padding: var(--space-5) var(--space-4) 112px; }
 .intro-art { display: grid; place-items: center; margin-block: var(--space-2) var(--space-3); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); }
 .exercise-illustration { width: min(100%, 320px); height: auto; }
 .illus-floor, .illus-prop { fill: none; stroke: var(--line-strong); stroke-width: 2; stroke-linecap: round; }
-.illus-body { fill: none; stroke: var(--accent-text); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-.illus-head { fill: var(--accent-text); }
+.illus-halo { fill: var(--accent-wash); }
+.illus-far, .illus-torso, .illus-near, .illus-arm, .illus-hand, .illus-ghost, .illus-weight { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.illus-far { stroke: color-mix(in srgb, var(--accent-text) 55%, var(--surface)); stroke-width: 6; }
+.illus-torso { stroke: var(--accent-text); stroke-width: 11; }
+.illus-near { stroke: var(--accent-text); stroke-width: 7; }
+.illus-arm { stroke: var(--accent-text); stroke-width: 5; }
+.illus-hand { stroke: var(--accent-text); stroke-width: 7; stroke-linecap: round; }
+.illus-head, .illus-ghost-head { fill: var(--accent-text); }
+.illus-ghost, .illus-ghost-head { opacity: .22; }
+.illus-ghost { stroke: var(--accent-text); stroke-width: 6; }
 .trace-chart { width: 100%; height: auto; margin-block: 4px var(--space-3); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .trace-line { fill: none; stroke: var(--accent-text); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .trace-guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; opacity: .6; vector-effect: non-scaling-stroke; }
@@ -398,3 +406,6 @@ main { padding-block-end: 128px; }
 .daily-plan-level { margin: 0; font-weight: 800; font-size: 1.05rem; color: var(--accent-text); }
 .daily-plan-level.is-rest, .daily-plan-level.is-light { color: var(--ink); }
 .daily-plan-list { margin: 0; padding-inline-start: 1.2rem; display: grid; gap: 4px; }
+.food-meals { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: 6px; }
+.food-meals li { padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.illus-weight { stroke: var(--ink); stroke-width: 3; }
