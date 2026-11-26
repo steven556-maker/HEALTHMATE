@@ -8,7 +8,6 @@ import { exerciseName } from "./exercise-copy.ts";
 import { exportCsv, printReport } from "./report.ts";
 import { $, showEmptyState, showToast } from "./ui.ts";
 import { renderWeeklyCard } from "./weekly-card.ts";
-import { renderFoodCard } from "./food.ts";
 import { BADGE_ORDER, activeDays, bestStreak, currentStreak, earnedBadges, weekProgress } from "../core/streaks.ts";
 import type { BadgeId } from "../core/streaks.ts";
 
@@ -127,7 +126,6 @@ function renderProgress(): void {
   }
 
   renderWeeklyCard();
-  renderFoodCard();
   renderStreaks();
   renderHistory();
   window.dispatchEvent(new Event("healthmate:refresh"));
