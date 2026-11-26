@@ -144,7 +144,7 @@ main { flex: 1; width: 100%; padding: var(--space-5) var(--space-4) 112px; }
 
 /* ---------- Bottom navigation ---------- */
 .healthmate-nav-host { position: fixed; z-index: 12; inset-inline: 0; inset-block-end: 0; pointer-events: none; }
-.healthmate-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(100%, var(--shell-width)); margin-inline: auto; padding: 0 max(var(--space-2), env(safe-area-inset-right)) env(safe-area-inset-bottom) max(var(--space-2), env(safe-area-inset-left)); border-block-start: 1px solid var(--line); background: var(--surface); pointer-events: auto; }
+.healthmate-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: min(100%, var(--shell-width)); margin-inline: auto; padding: 0 max(var(--space-2), env(safe-area-inset-right)) env(safe-area-inset-bottom) max(var(--space-2), env(safe-area-inset-left)); border-block-start: 1px solid var(--line); background: var(--surface); pointer-events: auto; }
 @media (min-width: 640px) { .healthmate-nav { border-inline: 1px solid var(--line); } }
 .healthmate-nav button { position: relative; display: grid; justify-items: center; align-content: center; gap: 2px; min-height: 60px; padding: 6px 2px; border: 0; background: transparent; color: var(--muted); font-size: var(--text-xs); font-weight: 600; white-space: nowrap; transition: color .15s; }
 .healthmate-nav button::before { content: ""; position: absolute; inset-block-start: -1px; inset-inline: 22%; height: 3px; border-radius: 0 0 3px 3px; background: transparent; transition: background .15s; }
@@ -250,7 +250,7 @@ h2 { font-weight: 800; }
 
 /* Floating pill navigation */
 .healthmate-nav-host { inset-block-end: max(12px, env(safe-area-inset-bottom)); }
-.healthmate-nav { width: min(calc(100% - 24px), 460px); padding: 6px; border: 1px solid var(--line-strong); border-radius: 999px; background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--shadow-lg); }
+.healthmate-nav { width: min(calc(100% - 16px), 500px); padding: 6px; border: 1px solid var(--line-strong); border-radius: 999px; background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--shadow-lg); }
 @media (min-width: 640px) { .healthmate-nav { border-inline: 1px solid var(--line-strong); } }
 .healthmate-nav button { min-height: 56px; padding: 6px 2px; border-radius: 999px; transition: background .2s, color .2s; }
 .healthmate-nav button::before { display: none; }
