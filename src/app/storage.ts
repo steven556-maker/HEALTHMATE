@@ -24,10 +24,12 @@ export interface Settings {
   accepted: boolean; // وافق على شاشة الترحيب وإخلاء المسؤولية
   theme: Theme;
   weeklyGoal: number; // عدد أيام التمرين المستهدفة أسبوعيًا
+  // عادي (full) أو دقة أعلى (heavy)
+  poseModel?: "standard" | "high";
   updatedAt?: number;
 }
 
-const DEFAULT_SETTINGS: Settings = { level: "normal", fontSize: "normal", muted: false, facing: "user", accepted: false, theme: "auto", weeklyGoal: DEFAULT_WEEKLY_GOAL };
+const DEFAULT_SETTINGS: Settings = { level: "normal", fontSize: "normal", muted: false, facing: "user", accepted: false, theme: "auto", weeklyGoal: DEFAULT_WEEKLY_GOAL, poseModel: "standard" };
 const K = { sessions: "hm.sessions", checkins: "hm.checkins", settings: "hm.settings", parq: "hm.parq" } as const;
 /** كل مفاتيح الجهاز اللي "مسح كل البيانات" لازم يشيلها */
 export const ALL_LOCAL_KEYS = [
