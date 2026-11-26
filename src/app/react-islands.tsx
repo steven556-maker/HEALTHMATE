@@ -6,12 +6,13 @@ import HealthDashboard from "../components/ui/health-glass-dashboard.tsx";
 import "../styles/tailwind.css";
 import "../styles/health-dashboard.css";
 
-const tabs = ["workout", "progress", "medications", "assistant"] as const;
+const tabs = ["workout", "progress", "food", "medications", "assistant"] as const;
 type Tab = (typeof tabs)[number];
-const tabLabels = ["workoutTab", "progressTab", "medicationsTab", "assistantTab"] as const;
+const tabLabels = ["workoutTab", "progressTab", "foodTab", "medicationsTab", "assistantTab"] as const;
 const paths = [
   <><path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9"/><path d="M9 20v-6h6v6"/></>,
   <><path d="M3 3v18h18"/><path d="m7 14 4-4 4 3 6-7"/></>,
+  <><path d="M7 3v8a2 2 0 0 0 2 2v8"/><path d="M11 3v8a2 2 0 0 1-2 2"/><path d="M9 3v6"/><path d="M17 3c-2 1.5-3 4-3 7 0 1.5.8 2.5 2 3v8"/></>,
   <><path d="M10 3h4v5h-4z"/><path d="M8 8h8a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3Z"/><path d="M9 14h6"/></>,
   <><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 4a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></>,
 ];
