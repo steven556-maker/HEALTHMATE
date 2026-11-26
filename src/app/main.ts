@@ -1,3 +1,4 @@
+import { renderFoodCard } from "./food.ts";
 import { EXERCISES, getExercise, needsSideView } from "../core/exercises/index.ts";
 import type { ExerciseDef, Landmark } from "../core/exercises/types.ts";
 import { computeMetrics, bodyFraming, viewOrientation } from "../core/pose/angles.ts";
@@ -105,8 +106,8 @@ function initChrome(): void {
   window.addEventListener("healthmate:refresh", () => { settings = store.getSettings(); applySettings(); });
   window.addEventListener("healthmate:navigate", (event) => {
     const tab = (event as CustomEvent<string>).detail;
-    if (["workout", "progress", "medications", "assistant"].includes(tab)) {
-      showTab(tab as "workout" | "progress" | "medications" | "assistant");
+    if (["workout", "progress", "food", "medications", "assistant"].includes(tab)) {
+      showTab(tab as "workout" | "progress" | "food" | "medications" | "assistant");
     }
   });
 }
@@ -122,9 +123,10 @@ async function wipeAllData(): Promise<void> {
   location.reload();
 }
 
-function showTab(tab: "workout" | "progress" | "medications" | "assistant"): void {
-  for (const name of ["workout", "progress", "medications", "assistant"] as const) $("tab-" + name).hidden = tab !== name;
+function showTab(tab: "workout" | "progress" | "food" | "medications" | "assistant"): void {
+  for (const name of ["workout", "progress", "food", "medications", "assistant"] as const) $("tab-" + name).hidden = tab !== name;
   if (tab === "progress") renderProgress();
+  if (tab === "food") renderFoodCard();
   if (tab === "medications") renderMedications();
   if (tab === "workout" && session) endSession(false); // مغادرة الشاشة توقف الكاميرا
 }
@@ -669,7 +671,7 @@ initReminders();
 $("btn-pain").onclick = reportPain;
 // الـ service worker بيتسجّل من vite-plugin-pwa (registerSW). هنا بس بنستقبل نقر الإشعار.
 const requested = new URLSearchParams(location.search).get("tab");
-if (requested && ["workout", "progress", "medications", "assistant"].includes(requested)) window.dispatchEvent(new CustomEvent("healthmate:navigate", { detail: requested }));
+if (requested && ["workout", "progress", "food", "medications", "assistant"].includes(requested)) window.dispatchEvent(new CustomEvent("healthmate:navigate", { detail: requested }));
 navigator.serviceWorker?.addEventListener("message", (event) => {
   const data = event.data as { type?: string; tab?: string } | undefined;
   if (data?.type === "navigate" && data.tab) window.dispatchEvent(new CustomEvent("healthmate:navigate", { detail: data.tab }));
