@@ -1,6 +1,7 @@
-// تسجيل الوجبات: اختيار الأكلة والوزن يدويًا، أو صورة بتتحلل عبر الـ Worker بعد موافقة صريحة.
-// السعرات دايمًا تقدير من جدول صغير (worker/src/food.ts). السجل على الجهاز بس (hm.meals): مش بيتزامن ومش في النسخة الاحتياطية.
-import { DISHES, dishById, estimateKcal, MAX_GRAMS, MIN_GRAMS } from "../../worker/src/food.ts";
+
+import { DISHES, dishById, kcalRange, MAX_GRAMS, MIN_GRAMS } from "../../worker/src/food.ts";
+import type { Dish } from "../../worker/src/food.ts";
+import { allDishes, POPULAR, searchFoods, usdaToDish } from "../core/food-search.ts";
 import { assistantUrl as ASSISTANT_URL, hasSupabaseConfig } from "./cloud-config.ts";
 import { getLocale } from "./i18n.ts";
 import { showToast } from "./ui.ts";
@@ -13,7 +14,7 @@ export function readMeals(): Meal[] {
   try {
     const v: unknown = JSON.parse(localStorage.getItem(KEY) || "[]");
     if (!Array.isArray(v)) return [];
-    return v.filter((m): m is Meal => !!m && typeof m.at === "number" && typeof m.dishId === "string" && !!dishById(m.dishId) && typeof m.grams === "number" && typeof m.low === "number" && typeof m.high === "number").slice(-300);
+    return v.filter((m): m is Meal => !!m && typeof m.at === "number" && typeof m.dishId === "string" && typeof m.grams === "number" && typeof m.low === "number" && typeof m.high === "number").slice(-300);
   } catch { return []; }
 }
 function saveMeals(m: Meal[]): void { try { localStorage.setItem(KEY, JSON.stringify(m.slice(-300))); } catch { showToast("!"); } }
@@ -27,8 +28,8 @@ export function totalSince(meals: Meal[], since: number): { low: number; high: n
 
 const S = {
   title: ["وجباتي (تقدير تقريبي)", "My meals (rough estimate)"],
-  disclaimer: ["السعرات هنا تقدير تقريبي من جدول صغير لأكل مصري، ممكن تختلف كتير حسب الوصفة والزيت والحصة. مش بديل لأخصائي تغذية ومش للتشخيص.", "Calories are a rough estimate from a small Egyptian food table and can differ a lot by recipe, oil and portion. Not a substitute for a dietitian and not for diagnosis."],
-  dish: ["الأكلة", "Dish"], grams: ["الوزن بالجرام (تقريبي)", "Weight in grams (approx.)"],
+  disclaimer: ["السعرات هنا تقدير تقريبي من جداول منشورة (أكل مصري وعربي وقاعدة USDA العالمية)، ممكن تختلف كتير حسب الوصفة والزيت والحصة. مش بديل لأخصائي تغذية ومش للتشخيص.", "Calories are a rough estimate from published tables (Egyptian and Arabic dishes, plus the USDA international database) and can differ a lot by recipe, oil and portion. Not a substitute for a dietitian and not for diagnosis."],
+  dish: ["ابحث عن أكلة (عربي أو إنجليزي)", "Search a food (Arabic or English)"], picked: ["المختار:", "Selected:"], noResults: ["مفيش نتيجة. جرّب كلمة تانية أو الاسم بالإنجليزي.", "No match. Try another word or the English name."], loadingDb: ["جاري تحميل قاعدة الأكل…", "Loading food database…"], usdaNote: ["قاعدة USDA: بالإنجليزي، والقيم لكل 100 جم زي ما هي منشورة.", "USDA database: English names, values per 100 g as published."], g: ["جم", "g"], grams: ["الوزن بالجرام (تقريبي)", "Weight in grams (approx.)"],
   photoConsent: ["أوافق إن الصورة تتبعت لخدمة ذكاء اصطناعي خارجية (Google Gemini) عن طريق خادم التطبيق عشان تتعرف على الأكلة. الصورة بتتصغّر وما بتتخزنش.", "I agree the photo is sent to an external AI service (Google Gemini) through the app server to identify the dish. The photo is resized and not stored."],
   photo: ["صوّر الأكل", "Photo of food"], analyzing: ["جاري التعرف…", "Identifying…"],
   needSignIn: ["التعرف بالصورة محتاج تسجيل دخول. تقدر تختار يدويًا.", "Photo recognition needs sign-in. You can pick manually."],
@@ -41,10 +42,18 @@ const S = {
   invalid: ["راجع الوزن (20 إلى 1200 جرام).", "Check weight (20 to 1200 g)."], clear: ["مسح سجل الوجبات", "Clear meal log"],
   needConsent: ["علّم على الموافقة الأول عشان تستخدم الصورة.", "Tick the consent box first to use a photo."],
   photoTitle: ["أو صوّر الأكل", "Or take a photo"], addTitle: ["سجّل وجبة", "Log a meal"],
-  typical: ["حصة معتادة", "typical portion"], range: ["النطاق من مصادر منشورة، والتقدير بيتوسّع ±25%.", "Range from published sources; estimates widened by 25%."],
+  typical: ["حصة معتادة", "typical portion"], range: ["النطاق من مصادر منشورة، وتقدير الوصفات بيتوسّع ±25% (افتراض مننا).", "Range from published sources; recipe estimates widened by 25% (our assumption)."],
 } as const;
 const en = (): 0 | 1 => (getLocale() === "en" ? 1 : 0);
 const tx = (k: keyof typeof S): string => S[k][en()];
+
+// قاعدة USDA (حوالي 3000 صنف) بتتحمّل مرة واحدة لما المستخدم يدوّر، مش مع تحميل التطبيق.
+let usdaPool: Dish[] | null = null;
+let usdaLoading: Promise<void> | null = null;
+function loadUsda(): Promise<void> {
+  usdaLoading ??= import("../data/usda-foods.ts").then((m) => { usdaPool = m.USDA_FOODS.map(usdaToDish); }).catch(() => { usdaLoading = null; });
+  return usdaLoading;
+}
 
 async function shrink(file: File): Promise<{ b64: string; mime: string } | null> {
   if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 15 * 1024 * 1024) return null;
@@ -91,20 +100,39 @@ export function renderFoodCard(): void {
   root.append(el("h2", "", tx("title")), el("p", "hint", tx("disclaimer")));
 
   const msg = el("p", "hint"); msg.setAttribute("role", "status");
-  const sel = el("select", "select-field");
-  for (const d of DISHES) { const o = el("option", "", `${en() ? d.en : d.ar}`); o.value = d.id; sel.append(o); }
+  const search = el("input", "select-field"); search.type = "search"; search.setAttribute("autocomplete", "off"); search.setAttribute("enterkeyhint", "search");
+  const results = el("ul", "food-results"); results.setAttribute("role", "listbox");
+  let picked: Dish | undefined = DISHES[0];
+  const name = (d: Dish): string => (en() ? d.en : d.ar);
+  const pickedLine = el("p", "food-picked");
   const gramsIn = el("input"); gramsIn.type = "number"; gramsIn.min = String(MIN_GRAMS); gramsIn.max = String(MAX_GRAMS); gramsIn.inputMode = "numeric";
   const preview = el("p", "food-preview");
   const update = (): void => {
-    const d = dishById(sel.value);
+    const d = picked;
+    pickedLine.textContent = d ? `${tx("picked")} ${name(d)} (${d.typicalG} ${tx("g")})` : "";
     if (d && !gramsIn.value) gramsIn.placeholder = `${d.typicalG}`;
     const g = Number(gramsIn.value || d?.typicalG);
-    const e = estimateKcal(sel.value, g);
+    const e = d ? kcalRange(d, g) : null;
     preview.textContent = e ? `${tx("estimate")} ${e.low === e.high ? e.low : `${e.low} - ${e.high}`} ${tx("kcal")}` : "";
   };
-  sel.onchange = () => { gramsIn.value = ""; update(); }; gramsIn.oninput = update;
+  const choose = (d: Dish): void => { picked = d; gramsIn.value = ""; update(); };
+  const renderResults = (): void => {
+    results.replaceChildren();
+    const q = search.value.trim();
+    const list = q ? searchFoods(q, allDishes(usdaPool ?? []), 12) : POPULAR;
+    if (q && !list.length) { const li = el("li", "hint", usdaPool ? tx("noResults") : tx("loadingDb")); results.append(li); return; }
+    for (const d of list) {
+      const li = el("li"); const b = el("button", "food-result", name(d)); b.type = "button"; b.setAttribute("role", "option");
+      b.onclick = () => { choose(d); results.replaceChildren(); search.value = ""; };
+      li.append(b); results.append(li);
+    }
+    if (q && list.some((d) => d.usda)) results.append(el("li", "hint", tx("usdaNote")));
+  };
+  search.oninput = () => { renderResults(); if (!usdaPool) void loadUsda().then(renderResults); };
+  search.onfocus = () => { void loadUsda(); };
+  gramsIn.oninput = update;
 
-  const f1 = el("label", "field"); f1.append(el("span", "", tx("dish")), sel);
+  const f1 = el("label", "field"); f1.append(el("span", "", tx("dish")), search);
   const f2 = el("label", "field"); f2.append(el("span", "", tx("grams")), gramsIn);
 
   // الصورة: موافقة منفصلة وصريحة
@@ -124,13 +152,13 @@ export function renderFoodCard(): void {
     else if (r === "limit") msg.textContent = tx("limit");
     else if (r === "failed") msg.textContent = tx("failed");
     else if (r.dish === "unknown" || !dishById(r.dish)) msg.textContent = tx("unknown");
-    else { sel.value = r.dish; gramsIn.value = String(r.grams); msg.textContent = tx("guess"); update(); }
+    else { picked = dishById(r.dish); update(); gramsIn.value = String(r.grams); msg.textContent = tx("guess"); update(); }
   };
 
   const add = el("button", "btn primary", tx("add")); add.type = "button";
   add.onclick = () => {
-    const d = dishById(sel.value); const g = Number(gramsIn.value || d?.typicalG);
-    const e = estimateKcal(sel.value, g);
+    const d = picked; const g = Number(gramsIn.value || d?.typicalG);
+    const e = d ? kcalRange(d, g) : null;
     if (!d || !e) { msg.textContent = tx("invalid"); return; }
     saveMeals([...readMeals(), { at: Date.now(), dishId: d.id, grams: Math.round(g), low: e.low, high: e.high }]);
     gramsIn.value = ""; msg.textContent = ""; renderFoodCard();
@@ -144,7 +172,7 @@ export function renderFoodCard(): void {
   if (!meals.length) totals.append(el("p", "hint", tx("none")));
 
   const group = (cls: string, ...nodes: HTMLElement[]): HTMLElement => { const g = el("div", cls); g.append(...nodes); return g; };
-  const addBox = group("food-group", el("h3", "", tx("addTitle")), f1, f2, preview, el("p", "hint", tx("range")), add);
+  const addBox = group("food-group", el("h3", "", tx("addTitle")), f1, results, pickedLine, f2, preview, el("p", "hint", tx("range")), add);
   const photoBox = group("food-group", el("h3", "", tx("photoTitle")), consentWrap, photoBtn, file, msg);
   root.append(totals, addBox, photoBox);
   if (meals.length) {
