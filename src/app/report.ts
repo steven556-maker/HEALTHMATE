@@ -4,6 +4,7 @@ import { dateKey } from "../core/medications.ts";
 import { getLocale, t } from "./i18n.ts";
 import { exerciseName } from "./exercise-copy.ts";
 import { readMedications } from "./med-store.ts";
+import { readFeelings } from "./feelings.ts";
 import { medicationSummary } from "./medications.ts";
 import { store } from "./storage.ts";
 import { $, showToast } from "./ui.ts";
@@ -84,7 +85,16 @@ export function printReport(): void {
   const medsTitle = document.createElement("h2"); medsTitle.textContent = t("csvMedications");
   const medsTable = table([t("csvDate"), t("csvTime"), t("csvMedication"), t("csvDose"), t("csvStatus")], doseRows);
 
+  const feelingKey: Record<string, Parameters<typeof t>[0]> = { good: "feelingGood", tired: "feelingTired", unwell: "feelingUnwell" };
+  const feelingRows = readFeelings().filter((f) => f.at >= since.getTime()).map((f) => [
+    new Date(f.at).toLocaleString(locale, { dateStyle: "short", timeStyle: "short" }),
+    exerciseName(f.exerciseId),
+    t(feelingKey[f.feeling] ?? "feelingGood"),
+  ]);
+  const feelingsTitle = document.createElement("h2"); feelingsTitle.textContent = t("csvFeelings");
+  const feelingsTable = table([t("csvDate"), t("csvExercise"), t("csvFeeling")], feelingRows);
+
   const disclaimer = document.createElement("p"); disclaimer.className = "print-disclaimer"; disclaimer.textContent = t("reportDisclaimer");
-  root.append(title, meta, summary, sessionsTitle, sessionsTable, medsTitle, medsTable, disclaimer);
+  root.append(title, meta, summary, sessionsTitle, sessionsTable, medsTitle, medsTable, feelingsTitle, feelingsTable, disclaimer);
   window.print();
 }
