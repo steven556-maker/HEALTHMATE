@@ -8,6 +8,7 @@ import { store } from "./storage.ts";
 import { readMedications } from "./med-store.ts";
 import { readMeals, totalSince } from "./food.ts";
 import { exerciseName } from "./exercise-copy.ts";
+import { activeDayStreak, daysSinceLastSession, quickStartExerciseId } from "../core/engagement.ts";
 
 type Pair = readonly [string, string];
 const TITLE: Pair = ["خطة النهارده", "Today's plan"];
@@ -44,6 +45,10 @@ const MOOD_OPTS: { mood: number; label: Pair }[] = [
   { mood: 5, label: ["كويس", "Good"] },
 ];
 const SUGGESTED: Pair = ["تمرين مقترح", "Suggested"];
+const STREAK = (n: number): Pair => [`🔥 ${n} ${n === 1 ? "يوم" : "أيام"} ورا بعض`, `🔥 ${n}-day streak`];
+const NUDGE_FIRST: Pair = ["ابدأ أول تمرين ليك النهارده 💪", "Start your first workout today 💪"];
+const NUDGE_RETURN = (n: number): Pair => [`آخر تمرين ليك من ${n} ${n === 1 ? "يوم" : "أيام"} — يلا نرجع 💪`, `Last workout was ${n} day(s) ago - let's get back 💪`];
+const QUICK_START = (name: string): Pair => [`ابدأ الآن: ${name}`, `Start now: ${name}`];
 const START: Pair = ["ابدأ", "Start"];
 // التمرين المقترح حسب شدة النهارده: خفيف = حركة هادية، عادي = سكوات
 const SUGGESTION_BY_LEVEL: Partial<Record<PlanLevel, string>> = { light: "sit_to_stand", normal: "squat" };
@@ -102,6 +107,31 @@ export function renderDailyPlan(): void {
   });
   card.replaceChildren();
   const h = document.createElement("h2"); h.textContent = pick(TITLE); card.append(h);
+
+  // تحفيز بدون أي احتكاك: سلسلة الأيام + تذكير لطيف + زرار بدء بضغطة واحدة
+  const allSessions = store.getSessions().filter((s) => !s.deleted);
+  const streak = activeDayStreak(allSessions, Date.now());
+  if (streak >= 1) {
+    const chip = document.createElement("p");
+    chip.className = "streak-chip";
+    chip.textContent = pick(STREAK(streak));
+    card.append(chip);
+  }
+  const gap = daysSinceLastSession(allSessions, Date.now());
+  if (gap === null || gap >= 2) {
+    const nudge = document.createElement("p");
+    nudge.className = "hint nudge-line";
+    nudge.textContent = gap === null ? pick(NUDGE_FIRST) : pick(NUDGE_RETURN(gap));
+    card.append(nudge);
+  }
+  const quickId = quickStartExerciseId(allSessions, suggestedExerciseId());
+  const quick = document.createElement("button");
+  quick.type = "button";
+  quick.className = "btn primary quick-start";
+  quick.textContent = pick(QUICK_START(exerciseName(quickId)));
+  quick.onclick = () => window.dispatchEvent(new CustomEvent("healthmate:quick-start", { detail: quickId }));
+  card.append(quick);
+
 
   // التسجيل جوه الكارت نفسه بضغطتين: النوم والمزاج. بعدها تظهر الشدة والتمرين المقترح.
   const missingSleep = checkin?.sleepHours === undefined;
