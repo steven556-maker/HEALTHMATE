@@ -8,27 +8,27 @@
   color-scheme: light dark;
 
   /* Surfaces */
-  --canvas: light-dark(#e4eaf2, #0b0e14);
-  --page: light-dark(#f3f6fb, #0b0e14);
-  --surface: light-dark(#ffffff, #121620);
-  --surface-muted: light-dark(#eaeff7, #181d2a);
-  --surface-raised: light-dark(#ffffff, #1d2331);
+  --canvas: light-dark(#e4eaf2, #050816);
+  --page: light-dark(#f3f6fb, #070c1d);
+  --surface: light-dark(#ffffff, #0d1428);
+  --surface-muted: light-dark(#eaeff7, #141c36);
+  --surface-raised: light-dark(#ffffff, #1a2444);
 
   /* Text */
   --ink: light-dark(#0a1124, #f2f6ff);
-  --muted: light-dark(#56627a, #9aa3b5);
+  --muted: light-dark(#56627a, #9aa6c2);
   --on-accent: light-dark(#ffffff, #0c1400);
 
   /* Lines */
-  --line: light-dark(#d6deec, rgb(255 255 255 / 7%));
-  --line-strong: light-dark(#b7c3da, rgb(255 255 255 / 13%));
+  --line: light-dark(#d6deec, rgb(255 255 255 / 9%));
+  --line-strong: light-dark(#b7c3da, rgb(255 255 255 / 18%));
 
   /* Brand */
-  --accent: light-dark(#3f7a0a, #b8f23d);
-  --accent-hover: light-dark(#336508, #cdff62);
-  --accent-text: light-dark(#376a08, #b8f23d);
-  --accent-soft: light-dark(#e6f4c8, rgb(184 242 61 / 14%));
-  --accent-wash: light-dark(#f1f8e1, rgb(184 242 61 / 6%));
+  --accent: light-dark(#47880b, #b8f23d);
+  --accent-hover: light-dark(#3a7008, #cdff62);
+  --accent-text: light-dark(#3f7a0a, #b8f23d);
+  --accent-soft: light-dark(#e8f5cf, rgb(184 242 61 / 14%));
+  --accent-wash: light-dark(#f2f9e4, rgb(184 242 61 / 6%));
 
   /* Status */
   --danger: light-dark(#b42318, #f4877c);
