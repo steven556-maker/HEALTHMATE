@@ -2,7 +2,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { activeDayStreak, daysSinceLastSession, detectWin, personalBest, quickStartExerciseId } from "../src/core/engagement.ts";
 
-const DAY = 86_400_000;
 const NOW = new Date(2026, 10, 27, 20, 0, 0).getTime(); // 8pm local
 const at = (daysAgo: number) => new Date(2026, 10, 27 - daysAgo, 10, 0, 0).getTime();
 
