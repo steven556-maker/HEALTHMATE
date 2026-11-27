@@ -714,12 +714,27 @@ function handleEvent(s: Session, ev: CounterEvent, now: number): void {
   }
 }
 
+let hudReduceMotion: boolean | null = null;
+function pulseStat(el: HTMLElement, value: string): void {
+  if (el.textContent === value) return;
+  el.textContent = value;
+  if (hudReduceMotion === null) hudReduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (hudReduceMotion) return;
+  el.animate(
+    [
+      { transform: "scale(1.35)", color: "var(--accent)" },
+      { transform: "scale(1)" },
+    ],
+    { duration: 300, easing: "cubic-bezier(.22,1,.36,1)" }
+  );
+}
+
 function renderHud(): void {
   const s = session;
   if (!s) return;
-  $("n-good").textContent = String(s.counter.state.goodReps);
+  pulseStat($("n-good"), String(s.counter.state.goodReps));
+  pulseStat($("n-hold"), String(Math.floor(s.counter.state.holdSeconds)));
   $("n-bad").textContent = String(s.counter.state.badReps);
-  $("n-hold").textContent = String(Math.floor(s.counter.state.holdSeconds));
 }
 
 const POSE_LINES: [number, number][] = [
