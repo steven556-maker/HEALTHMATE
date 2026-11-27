@@ -101,7 +101,7 @@ function speechAction(text: string): CueAction {
 
 /** Play an included ElevenLabs workout cue. */
 export function playRecordedCue(index: number, fallbackText = "", opts: { interrupt?: boolean } = {}): void {
-  if (muted || !Number.isInteger(index) || index < 1 || index > 20) return;
+  if (muted || !Number.isInteger(index) || index < 1 || index > 40) return;
   const base = import.meta.env.BASE_URL;
   coordinator.enqueue((done) => {
     recordedCue ??= new Audio();
