@@ -22,6 +22,9 @@ import { initBackup } from "./backup.ts";
 import { initPush } from "./push.ts";
 import { renderTrace } from "./trace-chart.ts";
 import { renderIllustration } from "./illustrations.ts";
+import { renderFeelingPrompt } from "./feelings.ts";
+import { suggestedExerciseId } from "./daily-plan.ts";
+import { detectWin } from "../core/engagement.ts";
 import { hasSupabaseConfig } from "./cloud-config.ts";
 import { store } from "./storage.ts";
 import { initMedications, renderMedications } from "./medications.ts";
@@ -143,48 +146,86 @@ function showTab(tab: "workout" | "progress" | "food" | "medications" | "assista
   if (tab === "workout" && session) endSession(false); // مغادرة الشاشة توقف الكاميرا
 }
 
-// اختيار التمرين
+// اختيار التمرين: فلاتر بالمجموعة العضلية + معلومات تساعد على الاختيار + تمييز التمرين المقترح
+type ExerciseFilter = "all" | "legs" | "core" | "upper";
+let exerciseFilter: ExerciseFilter = "all";
+const EXERCISE_CATEGORY: Record<string, Exclude<ExerciseFilter, "all">> = {
+  squat: "legs", lunge: "legs", glute_bridge: "legs", wall_sit: "legs", sit_to_stand: "legs", high_knees: "legs", goblet_squat: "legs",
+  plank: "core", mountain_climbers: "core", leg_raise: "core",
+  pushup: "upper", biceps_curl: "upper", shoulder_press: "upper", lateral_raise: "upper", romanian_deadlift: "upper",
+};
+const FILTERS: { id: ExerciseFilter; key: "filterAll" | "filterLegs" | "filterCore" | "filterUpper" }[] = [
+  { id: "all", key: "filterAll" }, { id: "legs", key: "filterLegs" }, { id: "core", key: "filterCore" }, { id: "upper", key: "filterUpper" },
+];
+
+function renderFilters(): void {
+  const box = $("exercise-filters");
+  box.innerHTML = "";
+  for (const f of FILTERS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "exercise-filter";
+    btn.textContent = t(f.key);
+    btn.setAttribute("aria-pressed", String(exerciseFilter === f.id));
+    btn.onclick = () => { exerciseFilter = f.id; renderPicker(); };
+    box.append(btn);
+  }
+}
+
+function lastSessionFor(id: string): { goodReps: number; badReps: number; holdSeconds: number } | undefined {
+  const all = store.getSessions();
+  for (let i = all.length - 1; i >= 0; i--) {
+    const row = all[i];
+    if (!row.deleted && row.exerciseId === id) return row;
+  }
+  return undefined;
+}
+
 function renderPicker(): void {
   const cards = $("cards");
   cards.innerHTML = "";
   const weightedCards = $("cards-weighted");
   weightedCards.innerHTML = "";
-  const hasWeighted = EXERCISES.some((e) => e.weighted);
-  $("weighted-section").hidden = !hasWeighted;
+  renderFilters();
+  const suggested = suggestedExerciseId();
+  let visibleWeighted = 0;
   for (const ex of EXERCISES) {
+    if (exerciseFilter !== "all" && EXERCISE_CATEGORY[ex.id] !== exerciseFilter) continue;
+    const isSuggested = ex.id === suggested;
     const b = document.createElement("button");
-    b.className = "exercise-card";
+    b.className = isSuggested ? "exercise-card is-suggested" : "exercise-card";
     const copy = EXERCISE_COPY[ex.id];
-    b.innerHTML = `<span class="exercise-card-art"></span><span class="exercise-copy"><b></b><small></small><span class="muscle-badge"></span></span><span class="exercise-start"><span data-start></span><svg class="exercise-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>`;
+    b.innerHTML = `<span class="exercise-card-art"></span><span class="exercise-copy"><b></b><small></small><span class="exercise-meta"></span><span class="muscle-badge"></span></span><span class="exercise-start"><span data-start></span><svg class="exercise-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>`;
     const art = b.querySelector(".exercise-card-art")!;
-    const imageName = EXERCISE_PHOTOS[ex.id];
-    if (imageName) {
-      const img = document.createElement("img");
-      img.className = "exercise-card-photo";
-      img.src = `${import.meta.env.BASE_URL}images/exercises/${imageName}`;
-      img.alt = "";
-      img.loading = "lazy";
-      img.addEventListener("load", () => img.classList.add("is-loaded"), { once: true });
-      img.decoding = "async";
-      art.append(img);
+    const illustration = renderIllustration(ex.id, exerciseName(ex.id), false);
+    if (illustration) {
+      illustration.setAttribute("aria-hidden", "true");
+      illustration.removeAttribute("role");
+      illustration.removeAttribute("aria-label");
+      art.append(illustration);
     } else {
-      const illustration = renderIllustration(ex.id, exerciseName(ex.id), false);
-      if (illustration) {
-        illustration.setAttribute("aria-hidden", "true");
-        illustration.removeAttribute("role");
-        illustration.removeAttribute("aria-label");
-        art.append(illustration);
-      } else {
-        art.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${copy?.icon ?? "M4 12h16"}"/></svg>`;
-      }
+      art.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${copy?.icon ?? "M4 12h16"}"/></svg>`;
     }
     b.querySelector("b")!.textContent = copy ? copyText(copy.name) : ex.id;
     b.querySelector("small")!.textContent = copy ? copyText(copy.hint) : "";
     b.querySelector(".muscle-badge")!.textContent = copy ? copyText(copy.muscle) : "";
-    b.querySelector("[data-start]")!.textContent = t("startCamera");
+    // معلومات القرار: النوع/المدة + آخر نتيجة
+    const meta: string[] = [ex.durationSec ? t("metaTimed", { seconds: ex.durationSec }) : t(ex.mode === "hold" ? "metaHold" : "metaReps")];
+    const last = lastSessionFor(ex.id);
+    if (last) meta.push(ex.mode === "hold" ? t("lastHold", { n: Math.round(last.holdSeconds) }) : t("lastReps", { n: last.goodReps }));
+    b.querySelector(".exercise-meta")!.textContent = meta.join(" · ");
+    // الكارت كله بيشتغل؛ زر لايم واضح للتمرين المقترح بس، والباقي سهم هادي
+    const startEl = b.querySelector(".exercise-start")!;
+    if (isSuggested) {
+      b.querySelector("[data-start]")!.textContent = t("startCamera");
+    } else {
+      startEl.classList.add("is-quiet");
+      startEl.setAttribute("aria-hidden", "true");
+    }
     b.onclick = () => openIntro(ex);
-    (ex.weighted ? weightedCards : cards).appendChild(b);
+    if (ex.weighted) { weightedCards.appendChild(b); visibleWeighted++; } else cards.appendChild(b);
   }
+  $("weighted-section").hidden = visibleWeighted === 0;
 }
 function openIntro(ex: ExerciseDef): void {
   pendingExercise = ex;
@@ -195,25 +236,21 @@ function openIntro(ex: ExerciseDef): void {
   $("summary").hidden = true;
   renderIntro(ex);
 }
-// صور التمارين الحقيقية (اسم الملف بالامتداد)
-const EXERCISE_PHOTOS: Record<string, string> = { squat: "squat.webp", pushup: "pushup.webp", plank: "plank.webp", lunge: "lunge.webp", glute_bridge: "glute-bridge.webp", wall_sit: "wall-sit.webp", sit_to_stand: "sit-to-stand.webp", high_knees: "high-knees.jpg", mountain_climbers: "mountain-climbers.jpg", leg_raise: "leg-raise.jpg", goblet_squat: "goblet-squat.jpg", biceps_curl: "biceps-curl.jpg", shoulder_press: "shoulder-press.jpg", lateral_raise: "lateral-raise.jpg", romanian_deadlift: "romanian-deadlift.jpg" };
 function renderIntro(ex: ExerciseDef): void {
   $("intro-title").textContent = `${exerciseName(ex.id)}${settings.level === "easy" ? ` (${t("easyMode")})` : ""}`;
   const art = $("intro-art");
   art.replaceChildren();
-  const photo = EXERCISE_PHOTOS[ex.id];
-  if (photo) {
-    const img = document.createElement("img");
-    img.className = "intro-photo";
-    img.src = `${import.meta.env.BASE_URL}images/exercises/${photo}`;
-    img.alt = exerciseName(ex.id);
-    img.decoding = "async";
-    art.append(img);
-  } else {
-    const svg = renderIllustration(ex.id, exerciseName(ex.id));
-    if (svg) art.append(svg);
+  const svg = renderIllustration(ex.id, exerciseName(ex.id));
+  if (svg) art.append(svg);
+  const notes = [needsSideView(ex) ? t("sideViewHint") : "", ex.durationSec ? t("timedHint", { seconds: ex.durationSec }) : ""].filter(Boolean).map(String);
+  // تلميح تركيز من أكتر خطأ اتكرر في آخر 5 جلسات لنفس التمرين
+  const recentErrs = store.getSessions().filter((r) => !r.deleted && r.exerciseId === ex.id && r.errors?.length).slice(-5);
+  if (recentErrs.length) {
+    const counts = new Map<string, number>();
+    for (const r of recentErrs) for (const id of r.errors ?? []) counts.set(id, (counts.get(id) ?? 0) + 1);
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (top) notes.push(t("focusTip", { cue: cueText(ex.id, top[0]) }));
   }
-  const notes = [needsSideView(ex) ? t("sideViewHint") : "", ex.durationSec ? t("timedHint", { seconds: ex.durationSec }) : ""].filter(Boolean);
   $("intro-notes").textContent = notes.join(" ");
   let details = document.getElementById("intro-details");
   if (!details) { details = document.createElement("div"); details.id = "intro-details"; details.className = "intro-details"; $("intro-notes").after(details); }
@@ -254,6 +291,11 @@ interface Session {
   activeAt: number;
   viewWarned: boolean;
   pain: boolean;
+  /** عداد أخطاء الوضعية في الجلسة (لملخص "أكتر خطأ" وتلميح التركيز) */
+  errorCounts: Record<string, number>;
+  /** آخر توجيه تأطير اتقال صوتيًا ووقته (مانع تكرار كل فريم) */
+  lastFramingKey: string;
+  lastFramingAt: number;
 }
 let pendingExercise: ExerciseDef | null = null;
 let session: Session | null = null;
@@ -365,6 +407,17 @@ function cueRecording(exerciseId: string, cueId: string): number | undefined {
   return CUE_RECORDINGS[`${exerciseId}:${cueId}`];
 }
 
+/** تسجيلات توجيه التأطير في مرحلة التجهيز (web/audio/recording-21..24.mp3) */
+const FRAMING_RECORDINGS: Record<string, number> = { no_body: 21, too_close: 22, cut_off: 23, turnSideways: 24 };
+
+/** بتتكلم عن مشكلة التأطير مرة لكل تغيير، أو كل 7 ثواني لو المشكلة مستمرة */
+function speakFraming(s: Session, key: string, text: string, now: number): void {
+  if (key === s.lastFramingKey && now - s.lastFramingAt < 7000) return;
+  s.lastFramingKey = key;
+  s.lastFramingAt = now;
+  speakExerciseCue(FRAMING_RECORDINGS[key], text);
+}
+
 async function startSession(): Promise<void> {
   unlockAudio(); // لازم قبل أي await عشان iOS يعتبرها لمسة مستخدم
   const def = pendingExercise;
@@ -453,6 +506,9 @@ async function startSession(): Promise<void> {
     activeAt: 0,
     viewWarned: false,
     pain: false,
+    errorCounts: {},
+    lastFramingKey: "",
+    lastFramingAt: 0,
   };
   $("stat-hold").hidden = def.mode !== "hold";
   $("stat-time").hidden = !def.durationSec;
@@ -480,6 +536,12 @@ function reportPain(): void {
   if (!s) return;
   s.pain = true;
   endSession(true);
+}
+
+/** زرار "مش مرتاح": بيوقف الجلسة فورًا ويطلع إرشادات الأمان (اقعد، اشرب مية، اطلب مساعدة) */
+function reportUnwell(): void {
+  if (session) endSession(false);
+  $("unwell-overlay").hidden = false;
 }
 
 /** الرسالة بتظهر جوه الصفحة (role=alert) بدل alert() اللي بيقفل الشاشة */
@@ -567,6 +629,7 @@ function processFrame(s: Session): number {
       setStatus(t("turnSideways"));
       drawSkeleton(ctx, lms, "#f59e0b");
       s.okSince = null;
+      speakFraming(s, "turnSideways", t("turnSideways"), now);
       return inferenceDuration;
     }
     setStatus(framingMessage(framing));
@@ -576,6 +639,7 @@ function processFrame(s: Session): number {
       if (now - s.okSince > 1000) activate(s);
     } else {
       s.okSince = null;
+      speakFraming(s, framing, framingMessage(framing), now);
     }
     return inferenceDuration;
   }
@@ -603,6 +667,7 @@ function handleEvent(s: Session, ev: CounterEvent, now: number): void {
   const { def, throttle } = s;
   if (ev.type === "feedback") {
     s.lastFailAt = now;
+    s.errorCounts[ev.id] = (s.errorCounts[ev.id] ?? 0) + 1;
     const message = cueText(s.def.id, ev.id);
     setMsg(message);
     if (throttle.allow(`fb:${ev.id}`, now)) speakExerciseCue(cueRecording(s.def.id, ev.id), message); // الرسالة ظاهرة نصًا أصلًا
@@ -615,6 +680,7 @@ function handleEvent(s: Session, ev: CounterEvent, now: number): void {
       if (!speak(count, { interrupt: true }) && !canSpeakCurrentLocale()) setMsg(`✓ ${s.counter.state.goodReps}`);
     } else {
       const message = ev.errors[0] ? cueText(s.def.id, ev.errors[0]) : "";
+      for (const err of ev.errors) s.errorCounts[err] = (s.errorCounts[err] ?? 0) + 1;
       setMsg(message);
       s.lastFailAt = now;
       if (message && throttle.allow(`fb:${ev.errors[0]}`, now)) speakExerciseCue(cueRecording(s.def.id, ev.errors[0]), message, { interrupt: true });
@@ -679,7 +745,15 @@ function endSession(showSummary: boolean): void {
 
   const { goodReps, badReps, holdSeconds } = s.counter.state;
   const active = s.pain || (s.def.mode === "hold" ? holdSeconds >= 3 : goodReps + badReps > 0);
-  if (active) store.addSession({ exerciseId: s.def.id, goodReps, badReps, holdSeconds: Math.round(holdSeconds), at: Date.now(), ...(s.pain ? { pain: true } : {}) });
+  const topErrors = Object.entries(s.errorCounts).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([id]) => id);
+  // آخر جلسة سابقة لنفس التمرين (قبل حفظ الحالية) عشان المقارنة
+  let prevSame: import("../core/coach/rules").SessionRecord | undefined;
+  const history = store.getSessions();
+  for (let i = history.length - 1; i >= 0; i--) {
+    const r = history[i];
+    if (!r.deleted && r.exerciseId === s.def.id) { prevSame = r; break; }
+  }
+  if (active) store.addSession({ exerciseId: s.def.id, goodReps, badReps, holdSeconds: Math.round(holdSeconds), at: Date.now(), ...(s.pain ? { pain: true } : {}), ...(topErrors.length ? { errors: topErrors } : {}) });
 
   $("live").hidden = true;
   if (showSummary && active) {
@@ -692,12 +766,30 @@ function endSession(showSummary: boolean): void {
         ? [t("holdSummary", { seconds: Math.round(holdSeconds) })]
         : total === 0 ? [] : [t("repSummary", { good: goodReps, bad: badReps }), t("accuracySummary", { accuracy: Math.round((goodReps / total) * 100) })];
     lines.push(t("durationSummary", { minutes: mins }));
+    if (topErrors.length) lines.push(t("mistakeSummary", { cue: cueText(s.def.id, topErrors[0]) }));
+    if (prevSame && !s.pain) {
+      const mine = s.def.mode === "hold" ? Math.round(holdSeconds) : goodReps;
+      const theirs = s.def.mode === "hold" ? prevSame.holdSeconds : prevSame.goodReps;
+      lines.push(t(mine > theirs ? "compareBetter" : mine < theirs ? "compareWorse" : "compareSame", { n: theirs }));
+    }
     if (s.pain) lines.unshift(t("painStopped"), t("painAdvice"));
     if (s.def.durationSec) lines.unshift(t("timedResult", { count: goodReps + badReps, seconds: s.def.durationSec }));
     for (const l of lines) {
       const p = document.createElement("p");
       p.textContent = l;
       body.appendChild(p);
+    }
+    // المكسب الصغير: تهنئة شخصية فوق الملخص (مفيش تهنئة لو الجلسة اتوقفت بألم)
+    if (!s.pain) {
+      const win = detectWin({ exerciseId: s.def.id, mode: s.def.mode, goodReps, holdSeconds, sessions: history, now: Date.now() });
+      const winEl = document.createElement("p");
+      winEl.className = "win-line";
+      winEl.textContent =
+        win.kind === "personal_best" ? t("winPersonalBest")
+        : win.kind === "streak" ? t("winStreak", { n: win.days })
+        : win.kind === "first" ? t("winFirst")
+        : t("winDone");
+      body.prepend(winEl);
     }
     if (s.def.durationSec) { const note = document.createElement("p"); note.className = "hint"; note.textContent = t("timedResultNote"); body.appendChild(note); }
     const guides = s.def.mode === "reps" ? { up: s.def.inverted ? s.def.downBelow[settings.level] : s.def.upAbove[settings.level], down: s.def.inverted ? s.def.upAbove[settings.level] : s.def.downBelow[settings.level] } : {};
@@ -707,6 +799,7 @@ function endSession(showSummary: boolean): void {
       chart.setAttribute("aria-label", t("traceCaption"));
       body.append(caption, chart);
     }
+    renderFeelingPrompt(body, s.def.id);
     if (!s.pain) renderRestTimer(body, () => { $("summary").hidden = true; openIntro(s.def); }, nextSetNumber(s.def.id));
     $("summary").hidden = false;
     speak(s.pain ? t("painStopped") : t("finishedWorkout"));
@@ -717,6 +810,26 @@ function endSession(showSummary: boolean): void {
 
 // تشغيل
 initChrome();
+window.addEventListener("healthmate:start-exercise", (event) => {
+  const id = (event as CustomEvent<string>).detail;
+  const ex = EXERCISES.find((e) => e.id === id);
+  if (ex) { showTab("workout"); openIntro(ex); }
+});
+// بدء سريع بضغطة واحدة: بيدخل على الجلسة على طول من غير شاشة المقدمة
+window.addEventListener("healthmate:quick-start", (event) => {
+  const id = (event as CustomEvent<string>).detail;
+  const ex = EXERCISES.find((e) => e.id === id);
+  if (!ex) return;
+  showTab("workout");
+  pendingExercise = ex;
+  $("picker").hidden = true;
+  $("session").hidden = false;
+  $("intro").hidden = true;
+  $("live").hidden = false;
+  $("summary").hidden = true;
+  void startSession();
+});
+window.addEventListener("healthmate:refresh", () => renderPicker());
 window.addEventListener("healthmate:locale", () => {
   renderPicker();
   if (pendingExercise && !$<HTMLElement>("session").hidden) {
@@ -752,6 +865,8 @@ initBackup();
 initPush();
 initReminders();
 $("btn-pain").onclick = reportPain;
+$("btn-unwell").onclick = reportUnwell;
+$("btn-unwell-close").onclick = () => { $("unwell-overlay").hidden = true; };
 // الـ service worker بيتسجّل من vite-plugin-pwa (registerSW). هنا بس بنستقبل نقر الإشعار.
 const requested = new URLSearchParams(location.search).get("tab");
 if (requested && ["workout", "progress", "food", "medications", "assistant"].includes(requested)) window.dispatchEvent(new CustomEvent("healthmate:navigate", { detail: requested }));
