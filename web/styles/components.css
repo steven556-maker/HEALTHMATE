@@ -389,9 +389,18 @@ main { padding-block-end: 128px; }
 .weekly-cell b, .rest-clock { text-shadow: 0 2px 10px var(--glow); }
 
 @media (prefers-reduced-motion: reduce) {
-  .tab:not([hidden]) > .panel, .tab:not([hidden]) #cards > .exercise-card { animation: none; }
-  .exercise-card, .weekly-cell, .food-group, .btn, .chat-chip, .send-orb, .healthmate-nav-host button { transition: none !important; transform: none !important; }
+  .tab:not([hidden]) > .panel, .tab:not([hidden]) #cards > .exercise-card, .streak-chip, .win-line { animation: none; }
+  .exercise-card, .weekly-cell, .food-group, .btn, .chat-chip, .send-orb, .healthmate-nav-host button, .healthmate-nav-host button svg { transition: none !important; transform: none !important; }
 }
+/* الصور الفاتحة بتبقى حادة في الدارك مود: تعتيم خفيف بس في الداكن */
+:root[data-theme="dark"] .exercise-card-photo { filter: brightness(.88) saturate(.96); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .exercise-card-photo { filter: brightness(.88) saturate(.96); }
+}
+/* أيقونة التاب النشط بتترفع وبتتحرك بنعومة عند التنقل */
+.healthmate-nav-host button svg { transition: transform .25s var(--ease-out), filter .25s var(--ease-out); }
+.healthmate-nav-host button[aria-current="page"] svg { transform: translateY(-2px); }
+
 /* بحث الأكل */
 .food-results { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; max-height: 260px; overflow: auto; }
 .food-result { width: 100%; min-height: 44px; padding: 8px 12px; text-align: start; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
@@ -488,11 +497,13 @@ main { padding-block-end: 128px; }
 .pc-block { margin-block: 12px; }
 .pc-q { font-weight: 600; margin: 0 0 6px; }
 .pc-opts, .feeling-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.pc-opt.is-selected { outline: 2px solid #84cc16; outline-offset: 1px; }
+.pc-opt.is-selected { outline: 2px solid var(--accent); outline-offset: 1px; }
 .live-privacy { text-align: center; font-size: 0.8rem; opacity: 0.7; margin: 4px 0 0; }
 
-/* ===== Engagement (streak, win, nudge, quick start) ===== */
-.streak-chip { display: inline-block; background: rgba(249, 115, 22, 0.14); border-radius: 999px; padding: 4px 14px; font-weight: 700; margin: 4px 0; }
+/* ===== Engagement (streak, win, nudge, quick start) =====
+   الألوان كلها من التوكنز عشان تتكيّف مع الدارك واللايت، ودخولها بوب سريع */
+@keyframes pop-in { 0% { opacity: 0; transform: scale(.82); } 60% { transform: scale(1.04); } 100% { opacity: 1; transform: scale(1); } }
+.streak-chip { display: inline-block; background: color-mix(in srgb, var(--warning) 16%, transparent); color: var(--warning); border-radius: 999px; padding: 4px 14px; font-weight: 700; margin: 4px 0; animation: pop-in .45s var(--ease-out) both; }
 .nudge-line { margin: 4px 0; }
 .quick-start { width: 100%; min-height: 52px; font-size: 1.1rem; font-weight: 700; margin-block: 10px 4px; }
-.win-line { font-weight: 700; font-size: 1.1rem; background: rgba(132, 204, 22, 0.16); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px; text-align: center; }
+.win-line { font-weight: 700; font-size: 1.1rem; background: color-mix(in srgb, var(--success) 15%, transparent); color: var(--success); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px; text-align: center; animation: pop-in .5s var(--ease-out) both; }
