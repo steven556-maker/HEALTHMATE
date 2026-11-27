@@ -26,6 +26,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           { urlPattern: ({ url }) => url.pathname.includes("/vendor/"), handler: "CacheFirst", options: { cacheName: "hm-vendor", cacheableResponse: { statuses: [200] }, expiration: { maxEntries: 20 } } },
+          // صور التمارين على الكروت: مش في الـ precache، بتتخزّن بعد أول ظهور
+          { urlPattern: ({ url }) => url.pathname.includes("/images/exercises/"), handler: "CacheFirst", options: { cacheName: "hm-exercise-images", cacheableResponse: { statuses: [200] }, expiration: { maxEntries: 40 } } },
           // الحزم الكبيرة اللي بتتحمّل عند الطلب (بحث الأكل، المزامنة): أول طلب من الشبكة وبعدين من الكاش
           { urlPattern: ({ url }) => /\/assets\/(usda-foods|cloud-sync)-[^/]+\.js$/.test(url.pathname), handler: "CacheFirst", options: { cacheName: "hm-lazy-chunks", cacheableResponse: { statuses: [200] }, expiration: { maxEntries: 10 } } },
           // التسجيلات الصوتية بتتطلب أول مرة بس وبعدين بتشتغل من الكاش
