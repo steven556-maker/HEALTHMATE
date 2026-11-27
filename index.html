@@ -82,7 +82,8 @@
 <main id="main-content" tabindex="-1">
   <section id="tab-workout" class="tab">
     <div id="picker">
-      <div class="section-heading"><p class="eyebrow">HEALTHMATE</p><h1 data-i18n="chooseWorkout">اختر تمرينك</h1></div>
+      <div class="section-heading picker-heading"><h1 data-i18n="chooseWorkout">اختر تمرينك</h1></div>
+      <div id="exercise-filters" class="exercise-filters"></div>
       <div id="cards" class="exercise-list"></div>
       <section id="weighted-section" class="weighted-section" hidden>
         <div class="section-heading"><h2 data-i18n="weightedTitle">تمارين بأوزان</h2><p class="hint" data-i18n="weightedHint">دمبل أو زجاجتين مية. الكاميرا بتعدّ التكرارات وبتصحح شكل الحركة، لكن مابتقيسش الوزن.</p></div>
@@ -105,6 +106,7 @@
       </section>
       <div id="live" hidden>
         <div id="stage" class="stage"><video id="video" playsinline muted></video><canvas id="overlay"></canvas><div id="status" class="status" data-i18n="loading">جارٍ التحميل…</div></div>
+        <p class="hint live-privacy" data-i18n="onDeviceNote">الفيديو بيتحلل على جهازك فقط، ولا يُحفظ ولا يُرسل.</p>
         <div id="hud" class="hud">
           <div class="stat"><span id="n-good">0</span><label data-i18n="correct">صحيح</label></div>
           <div class="stat"><span id="n-bad">0</span><label data-i18n="needsWork">يحتاج تحسين</label></div>
@@ -113,9 +115,22 @@
         </div>
         <p id="msg" class="msg" aria-live="polite"></p>
         <p id="voice-note" class="hint" hidden data-i18n="noArabicVoice">جهازك مفيهوش صوت عربي، فهنعرض التنبيهات كتابةً.</p>
+        <button id="btn-unwell" class="btn danger btn-unwell" data-i18n="unwellButton">مش مرتاح</button>
         <div class="actions"><button id="btn-skip-setup" class="btn" hidden data-i18n="startAnyway">ابدأ الآن</button><button id="btn-pain" class="btn danger" data-i18n="painButton">حاسس بألم</button><button id="btn-end" class="btn primary" data-i18n="endWorkout">إنهاء الجلسة</button></div>
       </div>
       <section id="summary" class="panel" hidden><h2 data-i18n="sessionSummary">ملخص الجلسة</h2><div id="summary-body"></div><button id="btn-done" class="btn primary" data-i18n="done">تم</button></section>
+      <div id="unwell-overlay" class="overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="unwell-title">
+        <div class="panel overlay-card">
+          <h2 id="unwell-title" data-i18n="unwellTitle">قف واستريح</h2>
+          <ol class="unwell-steps">
+            <li data-i18n="unwellStep1">اقعد فورًا واستريح.</li>
+            <li data-i18n="unwellStep2">اشرب مية.</li>
+            <li data-i18n="unwellStep3">لو الإحساس مستمر أو بيزيد، اطلب مساعدة أو كلم دكتورك.</li>
+            <li data-i18n="unwellStep4">طوارئ: الإسعاف 123.</li>
+          </ol>
+          <button id="btn-unwell-close" class="btn primary" data-i18n="unwellClose">فهمت</button>
+        </div>
+      </div>
     </div>
   </section>
 
