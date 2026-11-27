@@ -81,7 +81,6 @@ main { flex: 1; width: 100%; padding: var(--space-5) var(--space-4) 112px; }
 .exercise-card:active { transform: scale(.99); }
 .exercise-card-art { display: grid; place-items: center; width: 76px; height: 76px; flex: 0 0 76px; overflow: hidden; border-radius: var(--radius); background: var(--surface-muted); color: var(--accent-text); }
 .exercise-card-art .exercise-illustration { width: 100%; height: auto; }
-.exercise-card-photo { width: 100%; height: 100%; object-fit: cover; }
 .exercise-card-art > svg:not(.exercise-illustration) { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .exercise-copy { display: grid; flex: 1; min-width: 0; gap: 2px; }
 .exercise-copy b { font-size: var(--text-md); font-weight: 700; }
@@ -282,8 +281,6 @@ main { padding-block-end: 128px; }
 .btn:active, .icon-btn:active, .healthmate-nav button:active, .seg button:active, .language-switch:active { transform: scale(.96); }
 .btn, .icon-btn, .healthmate-nav button, .seg button, .exercise-card, .panel { transition: transform .12s var(--ease), background .2s, border-color .2s, box-shadow .2s, color .2s; }
 .tip-icon, .feature-mark { border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 999px; }
-.exercise-card-art { background: linear-gradient(110deg, var(--surface-muted) 8%, var(--surface-raised) 18%, var(--surface-muted) 33%); background-size: 200% 100%; animation: skeleton 1.4s linear infinite; }
-.exercise-card-art:has(img.is-loaded) { animation: none; background: var(--surface-muted); }
 @keyframes skeleton { to { background-position-x: -200%; } }
 .skeleton { border-radius: var(--radius); background: linear-gradient(110deg, var(--surface-muted) 8%, var(--surface-raised) 18%, var(--surface-muted) 33%); background-size: 200% 100%; animation: skeleton 1.4s linear infinite; }
 .empty-state { display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-5) var(--space-4); border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--muted); text-align: center; }
@@ -300,7 +297,7 @@ main { padding-block-end: 128px; }
 #welcome .sheet { background: linear-gradient(180deg, rgb(34 197 94 / 18%), var(--surface) 42%); }
 #welcome .sheet::before { content: ""; display: block; width: 96px; height: 96px; margin: 0 auto var(--space-3); border-radius: 50%; background: radial-gradient(circle, #fff 0 5%, var(--accent) 6% 22%, rgb(34 197 94 / 55%) 42%, transparent 70%); box-shadow: 0 0 50px var(--glow); }
 #welcome h1 { text-align: center; }
-@media (prefers-reduced-motion: reduce) { #tab-assistant > .panel::before { animation: none; } .exercise-card-art, .skeleton { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #tab-assistant > .panel::before { animation: none; } .skeleton { animation: none; } }
 
 /* تفاصيل التمرين ومؤقت الراحة */
 .intro-details { margin-block: var(--space-3); padding: var(--space-3); border-radius: var(--radius); background: var(--surface-muted); border: 1px solid var(--border, transparent); }
@@ -452,4 +449,46 @@ main { padding-block-end: 128px; }
   .exercise-copy { flex: 1 1 0; }
   .exercise-start { flex: 1 1 100%; justify-content: center; min-height: 42px; }
 }
-.intro-photo { width: min(100%, 360px); aspect-ratio: 5 / 4; object-fit: cover; border-radius: var(--radius); }
+
+/* ===== شاشة اختيار التمرين: عنوان أهدى، فلاتر، معلومات قرار، وتمييز المقترح ===== */
+.picker-heading { margin-block-end: var(--space-3); }
+.picker-heading h1 { font-size: clamp(1.4rem, 5vw, 1.8rem); font-weight: 800; letter-spacing: 0; }
+.exercise-filters { display: flex; gap: 8px; overflow-x: auto; padding-block-end: 4px; margin-block-end: var(--space-3); scrollbar-width: none; }
+.exercise-filters::-webkit-scrollbar { display: none; }
+.exercise-filter { flex: 0 0 auto; min-height: 36px; padding-inline: 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: .85rem; font-weight: 600; transition: background .15s, color .15s, border-color .15s; }
+.exercise-filter[aria-pressed="true"] { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--accent-text); }
+.exercise-meta { color: var(--muted); font-size: .78rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.exercise-start.is-quiet { background: transparent; box-shadow: none; color: var(--muted); padding-inline: 4px; min-height: auto; }
+.exercise-card.is-suggested { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 10px 28px -14px rgb(0 0 0 / 55%); }
+.exercise-card.is-suggested .exercise-card-art { box-shadow: 0 0 20px -6px var(--glow); }
+
+/* كارت خطة النهارده: تسجيل سريع + تمرين مقترح */
+.daily-plan-checkin { display: grid; gap: var(--space-3); margin-block: var(--space-2); }
+.checkin-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.checkin-row > span { font-weight: 600; font-size: .95rem; }
+.checkin-seg { display: flex; gap: 4px; }
+.checkin-seg button { min-height: 36px; padding-inline: 14px; }
+.daily-plan-suggest { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-block-start: var(--space-3); padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: var(--radius); background: var(--accent-wash); }
+.daily-plan-suggest b { color: var(--accent-text); }
+.suggest-start { min-height: 38px; padding-inline: 18px; }
+.daily-plan-suggest > span { flex: 1 1 auto; min-width: 0; }
+.daily-plan-suggest .suggest-start { flex: 0 0 auto; }
+@media (max-width: 520px) { .exercise-start.is-quiet { flex: 0 0 auto; justify-content: flex-end; } }
+
+/* ===== Safety check + unwell + feelings ===== */
+.btn-unwell { width: 100%; min-height: 56px; font-size: 1.15rem; font-weight: 700; margin-block: 8px; }
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+.overlay[hidden] { display: none; }
+.overlay-card { max-width: 420px; width: 100%; }
+.unwell-steps { margin: 0 0 16px; padding-inline-start: 22px; display: grid; gap: 8px; }
+.pc-block { margin-block: 12px; }
+.pc-q { font-weight: 600; margin: 0 0 6px; }
+.pc-opts, .feeling-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pc-opt.is-selected { outline: 2px solid #84cc16; outline-offset: 1px; }
+.live-privacy { text-align: center; font-size: 0.8rem; opacity: 0.7; margin: 4px 0 0; }
+
+/* ===== Engagement (streak, win, nudge, quick start) ===== */
+.streak-chip { display: inline-block; background: rgba(249, 115, 22, 0.14); border-radius: 999px; padding: 4px 14px; font-weight: 700; margin: 4px 0; }
+.nudge-line { margin: 4px 0; }
+.quick-start { width: 100%; min-height: 52px; font-size: 1.1rem; font-weight: 700; margin-block: 10px 4px; }
+.win-line { font-weight: 700; font-size: 1.1rem; background: rgba(132, 204, 22, 0.16); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px; text-align: center; }
